@@ -74,7 +74,7 @@ func init() {
 //FeatureVector feature representation of the session
 type FeatureVector struct {
 	//Vectors corresponding to every unique path
-	pathVectors        map[string]*PathVector
+	pathVectors        []*PathVector
 	sessionDuration    float64
 	sessionStartHour   int
 	sessionStartMinute int
@@ -99,8 +99,8 @@ func Start() {
 	}
 }
 
-func readTopPaths() map[string]bool {
-	var topPaths = make(map[string]bool)
+func readTopPaths() map[string]int {
+	var topPaths = make(map[string]int)
 	f, err := os.Open("../stats/top_paths.csv")
 
 	if err != nil {
@@ -119,7 +119,7 @@ func readTopPaths() map[string]bool {
 			continue
 		}
 
-		topPaths[str] = true
+		topPaths[str] = index
 
 		index++
 	}
@@ -169,17 +169,17 @@ func closeSessions() {
 	sessions.RUnlock()
 }
 
-func startFeaturesBeholder(periodSec int, topPaths map[string]bool) {
+func startFeaturesBeholder(periodSec int, topPaths *map[string]int) {
 	// fire once per second
 	t := time.NewTicker(time.Second * time.Duration(periodSec))
 
 	for {
-		dumpFeatures(topPaths)
+		dumpFeatures(*topPaths)
 		<-t.C
 	}
 }
 
-func dumpFeatures(topPaths map[string]bool) {
+func dumpFeatures(topPaths map[string]int) {
 	fmt.Fprintf(os.Stdout, "Dump features!\n")
 
 	sessions.Lock()
@@ -190,15 +190,13 @@ func dumpFeatures(topPaths map[string]bool) {
 			continue
 		}
 
-		var fv = extractFeatures(s, topPaths)
+		//var fv = extractFeatures(s, topPaths)
 
-		for path := range fv.pathVectors {
-			if !topPaths[path] {
-				continue
+		/*
+			for _, pv := range fv.pathVectors {
+				//
 			}
-
-			//
-		}
+		*/
 
 		//var fvDesc = fv.describe(allPaths)
 		//fmt.Printf("%s\n", fvDesc)
@@ -291,59 +289,83 @@ func HandleRequest(sessionKey string, request *sstrg.RequestData) {
 	sessions.Unlock()
 }
 
-func extractFeatures(s *sstrg.SessionHistory, topPaths map[string]bool) *FeatureVector {
+func extractFeatures(s *sstrg.SessionHistory, topPaths map[string]int) *FeatureVector {
 	//sstrg.SortRequestsByTime(s.Requests)
 
 	var fv = new(FeatureVector)
-	//TODO: init it above
-	fv.pathVectors = make(map[string]*PathVector)
-
 	var validRef bool
+
+	var pv *PathVector
+	var index int
+
+	//Map of all visited paths in this session
+	var pvMap = make(map[string]bool)
+
 	//Build path vectors map from requests
 	for _, r := range s.Requests {
+		//Mark request as visited
+		if _, ok := pvMap[r.Path]; !ok {
+			pvMap[r.Path] = true
+		}
+
 		//Ignore paths not from the top
-		if !topPaths[r.Path] {
+		if _, ok := topPaths[r.Path]; !ok {
 			continue
 		}
-		//fmt.Fprintf(os.Stdout, "%v\n", r.Time)
 
 		//Have referrer of this request been requested?
-		if _, ok := fv.pathVectors[r.Referer]; ok {
+		if _, ok := pvMap[r.Referer]; ok {
 			validRef = true
 		}
 
-		if _, pv := fv.pathVectors[r.Path]; !pv {
-			fv.pathVectors[r.Path] = new(PathVector)
-			fv.pathVectors[r.Path].started = r.Time.Sub(s.Started).Seconds()
-			fv.pathVectors[r.Path].minDelay = math.MaxFloat64
-			fv.pathVectors[r.Path].validRef = validRef
+		//Index of this path's path vector in final feature vector
+		index = topPaths[r.Path]
+
+		//Add new path vector
+		if fv.pathVectors[index] == nil {
+			pv = new(PathVector)
+			pv.started = r.Time.Sub(s.Started).Seconds()
+			pv.minDelay = math.MaxFloat64
+			pv.validRef = validRef
+			fv.pathVectors[index] = new(PathVector)
 		} else {
+			pv = fv.pathVectors[index]
 			//Delay after the last request with the same path
-			var delay = r.Time.Sub(fv.pathVectors[r.Path].last).Seconds()
-			fv.pathVectors[r.Path].delays = append(fv.pathVectors[r.Path].delays, delay)
-			fv.pathVectors[r.Path].averageDelay += delay
+			var delay = r.Time.Sub(pv.last).Seconds()
+			pv.delays = append(pv.delays, delay)
+			pv.averageDelay += delay
 			//Update max delay
-			if delay > fv.pathVectors[r.Path].maxDelay {
-				fv.pathVectors[r.Path].maxDelay = delay
+			if delay > pv.maxDelay {
+				pv.maxDelay = delay
 			}
 			//Update min delay
-			if delay < fv.pathVectors[r.Path].minDelay {
-				fv.pathVectors[r.Path].minDelay = delay
+			if delay < pv.minDelay {
+				pv.minDelay = delay
 			}
 		}
 
+		//fmt.Fprintf(os.Stdout, "%v\n", r.Time)
+
 		//If validRef is false for a single request in a session it's gonna be false for corresponding PathVector
-		fv.pathVectors[r.Path].validRef = fv.pathVectors[r.Path].validRef && validRef
-		fv.pathVectors[r.Path].last = r.Time
-		fv.pathVectors[r.Path].counter++
+		pv.validRef = pv.validRef && validRef
+		pv.last = r.Time
+		pv.counter++
+
 	}
 
-	for _, pathVector := range fv.pathVectors {
-		if pathVector.counter == 1 {
-			pathVector.minDelay = 0
-			pathVector.averageDelay = 0
+	for i := 0; i < config.topPathsCardinality; i++ {
+		if fv.pathVectors[i] == nil {
+			fv.pathVectors[i] = new(PathVector)
+			continue
+		}
+
+		pv = fv.pathVectors[i]
+
+		if pv.counter == 1 {
+			pv.minDelay = 0
+			pv.averageDelay = 0
 		} else {
-			pathVector.averageDelay /= float64(pathVector.counter - 1)
+			pv.averageDelay /= float64(pv.counter - 1)
 		}
 	}
 
