@@ -38,3 +38,4 @@ session started near round hour time (like 3am, 12pm)
 * Ideas
 
   * do not append features from separate request into a single feature-vector
+  * Teach network to predict point where session will end up using only a portion of requests in a session!!!! RNN? LSTM? (predict network)

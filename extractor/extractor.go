@@ -1,7 +1,9 @@
 package extractor
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"math"
 	"net/http"
 	"os"
@@ -16,29 +18,31 @@ import (
 
 //TODO: move to file
 var config = struct {
-	useDataHeader  bool
-	sessionsPeriod int
-	featuresPeriod int
-	statPeriod     int
-	//Number requests to a path for it to be added to dump
-	pathsThreshold     int
+	useDataHeader      bool
+	emulateTime        bool
+	sessionsPeriod     int
+	featuresPeriod     int
+	statPeriod         int
 	maxInactiveMinutes float64
 	//Feature flags
-	beholdStat        bool
-	beholdFeatures    bool
-	beholdSessionsEnd bool
+	beholdStat          bool
+	beholdFeatures      bool
+	beholdSessionsEnd   bool
+	topPathsCardinality int
 }{
-	useDataHeader:      true,
-	beholdStat:         false,
-	beholdSessionsEnd:  true,
-	beholdFeatures:     true,
-	sessionsPeriod:     9,
-	statPeriod:         10,
-	featuresPeriod:     5,
-	pathsThreshold:     1,
-	maxInactiveMinutes: 15.0}
+	useDataHeader:       true,
+	emulateTime:         true,
+	beholdStat:          false,
+	beholdSessionsEnd:   true,
+	beholdFeatures:      true,
+	sessionsPeriod:      5,
+	statPeriod:          5,
+	featuresPeriod:      5,
+	maxInactiveMinutes:  15.0,
+	topPathsCardinality: 250}
 
 var sessions = new(sstrg.SessionsTable)
+var emulatedTime time.Time
 var rpsCounter = ratecounter.NewRateCounter(10 * time.Second)
 
 //PathVector vector of features inherited from http path
@@ -83,14 +87,46 @@ func Start() {
 	if config.beholdSessionsEnd {
 		go startSessionsBeholder(config.sessionsPeriod)
 	}
-	//Dump features periodically
-	if config.beholdFeatures {
-		go startFeaturesBeholder(config.featuresPeriod)
-	}
 	//Collect stat on sessions
 	if config.beholdStat {
 		go statutils.StartSessionsStatBeholder(sessions, config.statPeriod)
 	}
+
+	//Dump features periodically
+	if config.beholdFeatures {
+		var topPaths = readTopPaths()
+		go startFeaturesBeholder(config.featuresPeriod, &topPaths)
+	}
+}
+
+func readTopPaths() map[string]bool {
+	var topPaths = make(map[string]bool)
+	f, err := os.Open("../stats/top_paths.csv")
+
+	if err != nil {
+		fmt.Println("Error readin top paths ", err)
+		os.Exit(1)
+	}
+
+	var index int
+
+	r := bufio.NewReader(f)
+	for index < config.topPathsCardinality {
+		str, err := r.ReadString(10)
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			continue
+		}
+
+		topPaths[str] = true
+
+		index++
+	}
+
+	f.Close()
+
+	return topPaths
 }
 
 func startSessionsBeholder(periodSec int) {
@@ -107,7 +143,12 @@ func closeSessions() {
 	//fmt.Fprintf(os.Stdout, "Closing sessions!\n")
 
 	var dur float64
-	var now = time.Now().UTC()
+	var now time.Time
+	if config.emulateTime {
+		now = emulatedTime
+	} else {
+		now = time.Now().UTC()
+	}
 
 	sessions.RLock()
 
@@ -128,37 +169,20 @@ func closeSessions() {
 	sessions.RUnlock()
 }
 
-func startFeaturesBeholder(periodSec int) {
+func startFeaturesBeholder(periodSec int, topPaths map[string]bool) {
 	// fire once per second
 	t := time.NewTicker(time.Second * time.Duration(periodSec))
 
 	for {
-		dumpFeatures()
+		dumpFeatures(topPaths)
 		<-t.C
 	}
 }
 
-func dumpFeatures() {
+func dumpFeatures(topPaths map[string]bool) {
 	fmt.Fprintf(os.Stdout, "Dump features!\n")
 
 	sessions.Lock()
-
-	var pathsCounter = 0
-	var allPaths = make(map[string]int)
-
-	for _, s := range sessions.H {
-		//We do not dump not-yet-finished sessions
-		if s.Active {
-			continue
-		}
-
-		for _, r := range s.Requests {
-			allPaths[r.Path]++
-			if allPaths[r.Path] == 1 {
-				pathsCounter++
-			}
-		}
-	}
 
 	for key, s := range sessions.H {
 		//We do not dump not-yet-finished sessions
@@ -166,14 +190,14 @@ func dumpFeatures() {
 			continue
 		}
 
-		var fv = extractFeatures(s)
+		var fv = extractFeatures(s, topPaths)
 
 		for path := range fv.pathVectors {
-			fmt.Printf("%s: %d\n", path, allPaths[path])
-			//TODO: get top X requests that are of dynamicContentType and are not referers
-			if allPaths[path] <= config.pathsThreshold {
-
+			if !topPaths[path] {
+				continue
 			}
+
+			//
 		}
 
 		//var fvDesc = fv.describe(allPaths)
@@ -183,8 +207,6 @@ func dumpFeatures() {
 		//Delete session from storage
 		delete(sessions.H, key)
 	}
-
-	fmt.Printf("Total paths: %d\n", pathsCounter)
 
 	sessions.Unlock()
 }
@@ -224,26 +246,6 @@ func RawHandler(w http.ResponseWriter, r *http.Request) {
 	sessions.RUnlock()
 }
 
-//FeaturesHandler ouputs feature vector for specified session key
-func FeaturesHandler(w http.ResponseWriter, r *http.Request) {
-	var sessionKey = r.URL.Query().Get("key")
-
-	if _, ok := sessions.H[sessionKey]; !ok {
-		fmt.Fprintf(w, "Not Found")
-		return
-	}
-
-	sessions.Lock()
-
-	var fv = extractFeatures(sessions.H[sessionKey])
-
-	sessions.Unlock()
-
-	for path, pathVector := range fv.pathVectors {
-		fmt.Fprintf(w, "%s:\nstarted in %.4f sec\tdelays:%v (%d total)\tmin: %.4f\taverage: %.4f\tmax: %.4f\tvalidRef:%v\n\n", path, pathVector.started, pathVector.delays, pathVector.counter, pathVector.minDelay, pathVector.averageDelay, pathVector.maxDelay, pathVector.validRef)
-	}
-}
-
 //StatHandler outputs current RPS
 func StatHandler(w http.ResponseWriter, r *http.Request) {
 	rps := rpsCounter.Rate() / 10
@@ -278,13 +280,18 @@ func HandleRequest(sessionKey string, request *sstrg.RequestData) {
 
 	sessions.H[sessionKey].Ended = request.Time
 
+	//Update emulated value
+	if config.emulateTime {
+		emulatedTime = request.Time
+	}
+
 	//Save request to session
 	sessions.H[sessionKey].Requests = append(sessions.H[sessionKey].Requests, request)
 
 	sessions.Unlock()
 }
 
-func extractFeatures(s *sstrg.SessionHistory) *FeatureVector {
+func extractFeatures(s *sstrg.SessionHistory, topPaths map[string]bool) *FeatureVector {
 	//sstrg.SortRequestsByTime(s.Requests)
 
 	var fv = new(FeatureVector)
@@ -294,6 +301,10 @@ func extractFeatures(s *sstrg.SessionHistory) *FeatureVector {
 	var validRef bool
 	//Build path vectors map from requests
 	for _, r := range s.Requests {
+		//Ignore paths not from the top
+		if !topPaths[r.Path] {
+			continue
+		}
 		//fmt.Fprintf(os.Stdout, "%v\n", r.Time)
 
 		//Have referrer of this request been requested?

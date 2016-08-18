@@ -23,7 +23,6 @@ func main() {
 
 	extractor.Start()
 
-	//readRawLogStash()
 	readDump()
 }
 
@@ -39,9 +38,8 @@ func readDump() {
 
 	r := bufio.NewReader(f)
 	for {
-		str, err := r.ReadString(10) // 0x0A separator = newline
+		str, err := r.ReadString(10)
 		if err == io.EOF {
-			// do something here
 			break
 		} else if err != nil {
 			continue
@@ -51,6 +49,8 @@ func readDump() {
 
 		handleRequest(pieces)
 	}
+
+	f.Close()
 }
 
 func handleRequest(source []string) {
