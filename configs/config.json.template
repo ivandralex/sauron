@@ -1,0 +1,4 @@
+{
+  "extractor_endpoint": "localhost:3000",
+  "replay_files_dir": "./replay_files/"
+}
