@@ -24,7 +24,6 @@
   * session start in client timezone
   * start minute (to detect attacks started in round hour time etc. 4pm)
   * Mobile device?
-  * number of filled top paths in feature vector
 
 
 unusual browsing time (for client's time zone)
@@ -38,5 +37,5 @@ session started near round hour time (like 3am, 12pm)
 
 * Ideas
 
-  * do not append features from separate request into a single feature-vector (path classifiers)
+  * do not append features from separate request into a single feature-vector
   * Teach network to predict point where session will end up using only a portion of requests in a session!!!! RNN? LSTM? (predict network)
