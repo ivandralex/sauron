@@ -12,7 +12,6 @@ import (
 //SessionsTable is a thread-safe wrapper under session history
 type SessionsTable struct {
 	sync.RWMutex
-	//TODO: replace it with slice-map pair (iterating over map is very slow and we do it very often)
 	H map[string]*SessionHistory
 }
 
