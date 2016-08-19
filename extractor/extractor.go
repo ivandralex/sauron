@@ -7,6 +7,7 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -39,7 +40,7 @@ var config = struct {
 	sessionsPeriod:      5,
 	statPeriod:          5,
 	featuresPeriod:      5,
-	maxInactiveMinutes:  15.0,
+	maxInactiveMinutes:  60.0,
 	topPathsCardinality: 250}
 
 var sessions = new(sstrg.SessionsTable)
@@ -67,13 +68,15 @@ type PathVector struct {
 	validRef bool
 }
 
-func (pv *PathVector) describe() []float64 {
-	vector := []float64{float64(pv.counter), pv.started, pv.averageDelay, pv.minDelay, pv.maxDelay}
-	if pv.validRef {
-		vector = append(vector, 1.0)
-	} else {
-		vector = append(vector, 0.0)
-	}
+func (pv *PathVector) describe() []string {
+	vector := []string{
+		strconv.FormatInt(int64(pv.counter), 10),
+		strconv.FormatFloat(pv.started, 'f', 2, 64),
+		strconv.FormatFloat(pv.averageDelay, 'f', 2, 64),
+		strconv.FormatFloat(pv.minDelay, 'f', 2, 64),
+		strconv.FormatFloat(pv.maxDelay, 'f', 2, 64),
+		strconv.FormatBool(pv.validRef)}
+
 	return vector
 }
 
@@ -92,16 +95,15 @@ type FeatureVector struct {
 	clientTimeZone     int
 }
 
-func (fv *FeatureVector) describe(pathsFilter []string) []float64 {
-	var finalVector []float64
+func (fv *FeatureVector) describe(pathsFilter []string) []string {
+	var finalVector []string
 	for _, path := range pathsFilter {
-		if _, ok := fv.pathVectors[path]; !ok {
+		if pv, ok := fv.pathVectors[path]; ok {
+			finalVector = append(finalVector, pv.describe()...)
+		} else {
 			//Add NaN vector if path was not visited
-			finalVector = append(finalVector, 0, 0, 0, 0, 0, 0)
-			continue
+			finalVector = append(finalVector, "0", "0", "0", "0", "0", "0")
 		}
-
-		finalVector = append(finalVector, fv.pathVectors[path].describe()...)
 	}
 
 	return finalVector
@@ -222,7 +224,7 @@ func dumpFeatures(sessions *sstrg.SessionsTable, topPaths []string) {
 
 		var fvDesc = fv.describe(topPaths)
 
-		fmt.Printf("FV: %d\n", len(fvDesc))
+		fmt.Printf("FV: %v\n", fvDesc)
 		//TODO: save description
 
 		//Delete session from storage
