@@ -81,6 +81,11 @@ type FeatureVector struct {
 	clientTimeZone     int
 }
 
+func (fv *FeatureVector) describe() []float64 {
+	var finalVector []float64
+	return finalVector
+}
+
 //Start features extractor
 func Start() {
 	//Check if sessions active periodically
@@ -95,7 +100,7 @@ func Start() {
 	//Dump features periodically
 	if config.beholdFeatures {
 		var topPaths = readTopPaths()
-		go startFeaturesBeholder(config.featuresPeriod, &topPaths)
+		go startFeaturesBeholder(config.featuresPeriod, topPaths)
 	}
 }
 
@@ -192,16 +197,8 @@ func dumpFeatures(topPaths map[string]bool) {
 
 		var fv = extractFeatures(s, topPaths)
 
-		for path := range fv.pathVectors {
-			if !topPaths[path] {
-				continue
-			}
-
-			//
-		}
-
-		//var fvDesc = fv.describe(allPaths)
-		//fmt.Printf("%s\n", fvDesc)
+		var fvDesc = fv.describe()
+		fmt.Printf("FV: %v\n", fvDesc)
 		//TODO: save description
 
 		//Delete session from storage
