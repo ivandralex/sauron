@@ -71,6 +71,11 @@ func handleRequest(source []string) {
 	}
 
 	request.Path = source[0]
+
+	if strings.HasSuffix(request.Path, "/") {
+		request.Path = request.Path[:len(request.Path)-1]
+	}
+
 	request.Method = "GET"
 	request.Referer = source[1]
 

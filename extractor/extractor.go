@@ -7,6 +7,7 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/paulbellamy/ratecounter"
@@ -66,6 +67,16 @@ type PathVector struct {
 	validRef bool
 }
 
+func (pv *PathVector) describe() []float64 {
+	vector := []float64{float64(pv.counter), pv.started, pv.averageDelay, pv.minDelay, pv.maxDelay}
+	if pv.validRef {
+		vector = append(vector, 1.0)
+	} else {
+		vector = append(vector, 0.0)
+	}
+	return vector
+}
+
 func init() {
 	fmt.Println("Extractor initialized")
 	sessions.H = make(map[string]*sstrg.SessionHistory)
@@ -81,8 +92,18 @@ type FeatureVector struct {
 	clientTimeZone     int
 }
 
-func (fv *FeatureVector) describe() []float64 {
+func (fv *FeatureVector) describe(pathsFilter []string) []float64 {
 	var finalVector []float64
+	for _, path := range pathsFilter {
+		if _, ok := fv.pathVectors[path]; !ok {
+			//Add NaN vector if path was not visited
+			finalVector = append(finalVector, 0, 0, 0, 0, 0, 0)
+			continue
+		}
+
+		finalVector = append(finalVector, fv.pathVectors[path].describe()...)
+	}
+
 	return finalVector
 }
 
@@ -100,12 +121,11 @@ func Start() {
 	//Dump features periodically
 	if config.beholdFeatures {
 		var topPaths = readTopPaths()
-		go startFeaturesBeholder(config.featuresPeriod, topPaths)
+		go startFeaturesBeholder(sessions, config.featuresPeriod, topPaths)
 	}
 }
 
-func readTopPaths() map[string]bool {
-	var topPaths = make(map[string]bool)
+func readTopPaths() []string {
 	f, err := os.Open("../stats/top_paths.csv")
 
 	if err != nil {
@@ -113,10 +133,10 @@ func readTopPaths() map[string]bool {
 		os.Exit(1)
 	}
 
-	var index int
+	var topPaths []string
 
 	r := bufio.NewReader(f)
-	for index < config.topPathsCardinality {
+	for len(topPaths) < config.topPathsCardinality {
 		str, err := r.ReadString(10)
 		if err == io.EOF {
 			break
@@ -124,9 +144,12 @@ func readTopPaths() map[string]bool {
 			continue
 		}
 
-		topPaths[str] = true
+		//Remove trailing slash
+		if strings.HasSuffix(str, "/\n") {
+			str = str[:len(str)-2]
+		}
 
-		index++
+		topPaths = append(topPaths, str)
 	}
 
 	f.Close()
@@ -174,17 +197,17 @@ func closeSessions() {
 	sessions.RUnlock()
 }
 
-func startFeaturesBeholder(periodSec int, topPaths map[string]bool) {
+func startFeaturesBeholder(sessions *sstrg.SessionsTable, periodSec int, topPaths []string) {
 	// fire once per second
 	t := time.NewTicker(time.Second * time.Duration(periodSec))
 
 	for {
-		dumpFeatures(topPaths)
+		dumpFeatures(sessions, topPaths)
 		<-t.C
 	}
 }
 
-func dumpFeatures(topPaths map[string]bool) {
+func dumpFeatures(sessions *sstrg.SessionsTable, topPaths []string) {
 	fmt.Fprintf(os.Stdout, "Dump features!\n")
 
 	sessions.Lock()
@@ -195,10 +218,11 @@ func dumpFeatures(topPaths map[string]bool) {
 			continue
 		}
 
-		var fv = extractFeatures(s, topPaths)
+		var fv = extractFeatures(s)
 
-		var fvDesc = fv.describe()
-		fmt.Printf("FV: %v\n", fvDesc)
+		var fvDesc = fv.describe(topPaths)
+
+		fmt.Printf("FV: %d\n", len(fvDesc))
 		//TODO: save description
 
 		//Delete session from storage
@@ -288,7 +312,7 @@ func HandleRequest(sessionKey string, request *sstrg.RequestData) {
 	sessions.Unlock()
 }
 
-func extractFeatures(s *sstrg.SessionHistory, topPaths map[string]bool) *FeatureVector {
+func extractFeatures(s *sstrg.SessionHistory) *FeatureVector {
 	//sstrg.SortRequestsByTime(s.Requests)
 
 	var fv = new(FeatureVector)
@@ -298,10 +322,6 @@ func extractFeatures(s *sstrg.SessionHistory, topPaths map[string]bool) *Feature
 	var validRef bool
 	//Build path vectors map from requests
 	for _, r := range s.Requests {
-		//Ignore paths not from the top
-		if !topPaths[r.Path] {
-			continue
-		}
 		//fmt.Fprintf(os.Stdout, "%v\n", r.Time)
 
 		//Have referrer of this request been requested?
