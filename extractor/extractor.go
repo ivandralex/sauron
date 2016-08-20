@@ -2,8 +2,10 @@ package extractor
 
 import (
 	"bufio"
+	"encoding/csv"
 	"fmt"
 	"io"
+	"log"
 	"math"
 	"net/http"
 	"os"
@@ -81,7 +83,6 @@ func (pv *PathVector) describe() []string {
 }
 
 func init() {
-	fmt.Println("Extractor initialized")
 	sessions.H = make(map[string]*sstrg.SessionHistory)
 }
 
@@ -102,7 +103,7 @@ func (fv *FeatureVector) describe(pathsFilter []string) []string {
 			finalVector = append(finalVector, pv.describe()...)
 		} else {
 			//Add NaN vector if path was not visited
-			finalVector = append(finalVector, "0", "0", "0", "0", "0", "0")
+			finalVector = append(finalVector, "0", "0", "0", "0", "0", "false")
 		}
 	}
 
@@ -203,15 +204,15 @@ func startFeaturesBeholder(sessions *sstrg.SessionsTable, periodSec int, topPath
 	// fire once per second
 	t := time.NewTicker(time.Second * time.Duration(periodSec))
 
+	w := csv.NewWriter(os.Stdout)
+
 	for {
-		dumpFeatures(sessions, topPaths)
+		dumpFeatures(w, sessions, topPaths)
 		<-t.C
 	}
 }
 
-func dumpFeatures(sessions *sstrg.SessionsTable, topPaths []string) {
-	fmt.Fprintf(os.Stdout, "Dump features!\n")
-
+func dumpFeatures(w *csv.Writer, sessions *sstrg.SessionsTable, topPaths []string) {
 	sessions.Lock()
 
 	for key, s := range sessions.H {
@@ -224,14 +225,17 @@ func dumpFeatures(sessions *sstrg.SessionsTable, topPaths []string) {
 
 		var fvDesc = fv.describe(topPaths)
 
-		fmt.Printf("FV: %v\n", fvDesc)
-		//TODO: save description
+		if err := w.Write(fvDesc); err != nil {
+			log.Fatalln("Error writing record to csv:", err)
+		}
 
 		//Delete session from storage
 		delete(sessions.H, key)
 	}
 
 	sessions.Unlock()
+
+	w.Flush()
 }
 
 //RawHandler outputs raw requests data for specified session key

@@ -2,3 +2,4 @@
 config.json
 /stats
 **/node_modules
+**/features.csv
