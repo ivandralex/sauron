@@ -1,17 +1,15 @@
 package extractor
 
 import (
-	"bufio"
 	"encoding/csv"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/paulbellamy/ratecounter"
+	"github.com/sauron/config"
 	"github.com/sauron/features"
 	"github.com/sauron/session"
 	"github.com/sauron/stat"
@@ -28,21 +26,19 @@ var config = struct {
 	statPeriod         int
 	maxInactiveMinutes float64
 	//Feature flags
-	beholdStat          bool
-	beholdFeatures      bool
-	beholdSessionsEnd   bool
-	topPathsCardinality int
+	beholdStat        bool
+	beholdFeatures    bool
+	beholdSessionsEnd bool
 }{
-	useDataHeader:       true,
-	emulateTime:         true,
-	beholdStat:          false,
-	beholdSessionsEnd:   true,
-	beholdFeatures:      true,
-	sessionsPeriod:      5,
-	statPeriod:          5,
-	featuresPeriod:      5,
-	maxInactiveMinutes:  60.0,
-	topPathsCardinality: 250}
+	useDataHeader:      true,
+	emulateTime:        true,
+	beholdStat:         false,
+	beholdSessionsEnd:  true,
+	beholdFeatures:     true,
+	sessionsPeriod:     5,
+	statPeriod:         5,
+	featuresPeriod:     5,
+	maxInactiveMinutes: 60.0}
 
 var sessions = new(sstrg.SessionsTable)
 var emulatedTime time.Time
@@ -65,44 +61,8 @@ func Start() {
 
 	//Dump features periodically
 	if config.beholdFeatures {
-		var targetPaths = readTargetPaths()
-		go startFeaturesBeholder(sessions, config.featuresPeriod, targetPaths)
+		go startFeaturesBeholder(sessions, config.featuresPeriod)
 	}
-}
-
-func readTargetPaths() []string {
-	f, err := os.Open("../configs/target_paths.csv")
-
-	if err != nil {
-		fmt.Println("Error readin top paths ", err)
-		os.Exit(1)
-	}
-
-	var topPaths []string
-
-	r := bufio.NewReader(f)
-	for len(topPaths) < config.topPathsCardinality {
-		str, err := r.ReadString(10)
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			continue
-		}
-
-		//Remove trailing slash
-		if strings.HasSuffix(str, "\n") {
-			str = str[:len(str)-1]
-		}
-		if strings.HasSuffix(str, "/") {
-			str = str[:len(str)-1]
-		}
-
-		topPaths = append(topPaths, str)
-	}
-
-	f.Close()
-
-	return topPaths
 }
 
 func startSessionsBeholder(periodSec int) {
@@ -145,7 +105,9 @@ func closeSessions() {
 	sessions.RUnlock()
 }
 
-func startFeaturesBeholder(sessions *sstrg.SessionsTable, periodSec int, targetPaths []string) {
+func startFeaturesBeholder(sessions *sstrg.SessionsTable, periodSec int) {
+	var targetPaths = configutil.ReadPathsConfig("../configs/target_paths.csv")
+
 	// fire once per second
 	t := time.NewTicker(time.Second * time.Duration(periodSec))
 
@@ -179,41 +141,6 @@ func dumpFeatures(w *csv.Writer, sessions *sstrg.SessionsTable, targetPaths []st
 	sessions.Unlock()
 
 	w.Flush()
-}
-
-//RawHandler outputs raw requests data for specified session key
-func RawHandler(w http.ResponseWriter, r *http.Request) {
-	var sessionKey = r.URL.Query().Get("key")
-
-	if _, ok := sessions.H[sessionKey]; !ok {
-		fmt.Fprint(w, "Not Found")
-		return
-	}
-
-	sessions.RLock()
-
-	var session = sessions.H[sessionKey]
-
-	fmt.Fprintf(w, "Started: %v\nLast: %v\nRequests: %d\nActive: %v\n\n", session.Started, session.Ended, len(session.Requests), session.Active)
-
-	for _, r := range sessions.H[sessionKey].Requests {
-
-		fmt.Fprintf(w, "%s %s\n", r.Method, r.Path)
-
-		for _, c := range r.Cookies {
-			fmt.Fprintf(w, "%s=%s;", c.Name, c.Path)
-		}
-
-		fmt.Fprintf(w, "\n")
-
-		for k, h := range r.Header {
-			fmt.Fprintf(w, "%s: %s\n", k, h[0])
-		}
-
-		fmt.Fprintf(w, "\n\n\n\n")
-	}
-
-	sessions.RUnlock()
 }
 
 //StatHandler outputs current RPS
@@ -260,4 +187,39 @@ func HandleRequest(sessionKey string, request *sstrg.RequestData) {
 	sessions.H[sessionKey].Requests = append(sessions.H[sessionKey].Requests, request)
 
 	sessions.Unlock()
+}
+
+//RawHandler outputs raw requests data for specified session key
+func RawHandler(w http.ResponseWriter, r *http.Request) {
+	var sessionKey = r.URL.Query().Get("key")
+
+	if _, ok := sessions.H[sessionKey]; !ok {
+		fmt.Fprint(w, "Not Found")
+		return
+	}
+
+	sessions.RLock()
+
+	var session = sessions.H[sessionKey]
+
+	fmt.Fprintf(w, "Started: %v\nLast: %v\nRequests: %d\nActive: %v\n\n", session.Started, session.Ended, len(session.Requests), session.Active)
+
+	for _, r := range sessions.H[sessionKey].Requests {
+
+		fmt.Fprintf(w, "%s %s\n", r.Method, r.Path)
+
+		for _, c := range r.Cookies {
+			fmt.Fprintf(w, "%s=%s;", c.Name, c.Path)
+		}
+
+		fmt.Fprintf(w, "\n")
+
+		for k, h := range r.Header {
+			fmt.Fprintf(w, "%s: %s\n", k, h[0])
+		}
+
+		fmt.Fprintf(w, "\n\n\n\n")
+	}
+
+	sessions.RUnlock()
 }
