@@ -76,8 +76,8 @@ func (pv *PathVector) describe() []string {
 		strconv.FormatFloat(pv.started, 'f', 2, 64),
 		strconv.FormatFloat(pv.averageDelay, 'f', 2, 64),
 		strconv.FormatFloat(pv.minDelay, 'f', 2, 64),
-		strconv.FormatFloat(pv.maxDelay, 'f', 2, 64),
-		strconv.FormatBool(pv.validRef)}
+		strconv.FormatFloat(pv.maxDelay, 'f', 2, 64)}
+	//strconv.FormatBool(pv.validRef)}
 
 	return vector
 }
@@ -103,7 +103,7 @@ func (fv *FeatureVector) describe(pathsFilter []string) []string {
 			finalVector = append(finalVector, pv.describe()...)
 		} else {
 			//Add NaN vector if path was not visited
-			finalVector = append(finalVector, "0", "0", "0", "0", "0", "false")
+			finalVector = append(finalVector, "0", "0", "0", "0", "0")
 		}
 	}
 
@@ -129,7 +129,7 @@ func Start() {
 }
 
 func readTopPaths() []string {
-	f, err := os.Open("../stats/top_paths.csv")
+	f, err := os.Open("../configs/paths.csv")
 
 	if err != nil {
 		fmt.Println("Error readin top paths ", err)
@@ -148,8 +148,11 @@ func readTopPaths() []string {
 		}
 
 		//Remove trailing slash
-		if strings.HasSuffix(str, "/\n") {
-			str = str[:len(str)-2]
+		if strings.HasSuffix(str, "\n") {
+			str = str[:len(str)-1]
+		}
+		if strings.HasSuffix(str, "/") {
+			str = str[:len(str)-1]
 		}
 
 		topPaths = append(topPaths, str)
@@ -302,9 +305,10 @@ func HandleRequest(sessionKey string, request *sstrg.RequestData) {
 	if _, ok := sessions.H[sessionKey]; !ok {
 		sessions.H[sessionKey] = new(sstrg.SessionHistory)
 		sessions.H[sessionKey].Started = request.Time
-		sessions.H[sessionKey].Active = true
 	}
 
+	//If session was inactive and was not deleted and we received request with same session key we re-activate session
+	sessions.H[sessionKey].Active = true
 	sessions.H[sessionKey].Ended = request.Time
 
 	//Update emulated value

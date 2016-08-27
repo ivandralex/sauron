@@ -54,7 +54,7 @@ func readDump() {
 }
 
 func handleRequest(source []string) {
-	if len(source) != 6 {
+	if len(source) > 6 {
 		return
 	}
 
