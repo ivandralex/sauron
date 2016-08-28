@@ -9,15 +9,15 @@ import (
 )
 
 //ReadPathsConfig config containing HTTP paths
-func ReadPathsConfig(fileName string) []string {
-	f, err := os.Open(fileName)
+func ReadPathsConfig(filePath string) []string {
+	f, err := os.Open(filePath)
 
 	if err != nil {
-		fmt.Println("Error readin top paths ", err)
+		fmt.Printf("Error reading %s %v\n", filePath, err)
 		os.Exit(1)
 	}
 
-	var targetPaths []string
+	var paths []string
 
 	r := bufio.NewReader(f)
 	for {
@@ -36,10 +36,42 @@ func ReadPathsConfig(fileName string) []string {
 			str = str[:len(str)-1]
 		}
 
-		targetPaths = append(targetPaths, str)
+		paths = append(paths, str)
 	}
 
 	f.Close()
 
-	return targetPaths
+	return paths
+}
+
+//ReadStringMap config containing HTTP paths
+func ReadStringMap(filePath string) map[string]bool {
+	f, err := os.Open(filePath)
+
+	if err != nil {
+		fmt.Printf("Error reading %s %v\n", filePath, err)
+		os.Exit(1)
+	}
+
+	var stringMap = make(map[string]bool)
+
+	r := bufio.NewReader(f)
+	for {
+		str, err := r.ReadString(10)
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			continue
+		}
+
+		if strings.HasSuffix(str, "\n") {
+			str = str[:len(str)-1]
+		}
+
+		stringMap[str] = true
+	}
+
+	f.Close()
+
+	return stringMap
 }

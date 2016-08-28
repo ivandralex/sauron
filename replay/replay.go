@@ -78,10 +78,11 @@ func handleRequest(source []string) {
 
 	request.Method = "GET"
 	request.Referer = source[1]
+	request.IP = strings.Split(source[2], ",")[0]
 
 	request.Path, request.ContentType = sstrg.GetContentType(request.Path)
 
-	var sessionKey = source[2] // source[4]
+	var sessionKey = request.IP // source[4]
 
 	extractor.HandleRequest(sessionKey, request)
 }

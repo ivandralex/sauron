@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/paulbellamy/ratecounter"
-	"github.com/sauron/config"
+	"github.com/sauron/detectors"
 	"github.com/sauron/features"
 	"github.com/sauron/session"
 	"github.com/sauron/stat"
@@ -45,7 +45,7 @@ var emulatedTime time.Time
 var rpsCounter = ratecounter.NewRateCounter(10 * time.Second)
 
 func init() {
-	sessions.H = make(map[string]*sstrg.SessionHistory)
+	sessions.H = make(map[string]*sstrg.SessionData)
 }
 
 //Start features extractor
@@ -106,20 +106,26 @@ func closeSessions() {
 }
 
 func startFeaturesBeholder(sessions *sstrg.SessionsTable, periodSec int) {
-	var targetPaths = configutil.ReadPathsConfig("../configs/target_paths.csv")
-
 	// fire once per second
 	t := time.NewTicker(time.Second * time.Duration(periodSec))
 
-	w := csv.NewWriter(os.Stdout)
+	os.Remove("../output/features/new.csv")
+
+	f, err := os.Create("../output/features/new.csv")
+
+	if err != nil {
+		log.Fatalln("Error creating features file:", err)
+	}
+
+	w := csv.NewWriter(f)
 
 	for {
-		dumpFeatures(w, sessions, targetPaths)
+		dumpFeatures(w, sessions)
 		<-t.C
 	}
 }
 
-func dumpFeatures(w *csv.Writer, sessions *sstrg.SessionsTable, targetPaths []string) {
+func dumpFeatures(w *csv.Writer, sessions *sstrg.SessionsTable) {
 	sessions.Lock()
 
 	for key, s := range sessions.H {
@@ -128,7 +134,10 @@ func dumpFeatures(w *csv.Writer, sessions *sstrg.SessionsTable, targetPaths []st
 			continue
 		}
 
-		var fvDesc = pathvector.ExtractFeatures(s, targetPaths)
+		var fvDesc = pathvector.ExtractFeatures(s)
+		//Append label
+		var label = detectors.GetLabelByBlackList(s)
+		fvDesc = append(fvDesc, label)
 
 		if err := w.Write(fvDesc); err != nil {
 			log.Fatalln("Error writing record to csv:", err)
@@ -170,8 +179,9 @@ func HandleRequest(sessionKey string, request *sstrg.RequestData) {
 
 	//Save new session to storage
 	if _, ok := sessions.H[sessionKey]; !ok {
-		sessions.H[sessionKey] = new(sstrg.SessionHistory)
+		sessions.H[sessionKey] = new(sstrg.SessionData)
 		sessions.H[sessionKey].Started = request.Time
+		sessions.H[sessionKey].IP = request.IP
 	}
 
 	//If session was inactive and was not deleted and we received request with same session key we re-activate session

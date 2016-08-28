@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/sauron/config"
 	"github.com/sauron/session"
 )
 
@@ -27,6 +28,12 @@ type PathVector struct {
 	chainDelays []float64
 	//Has referrer been requested?
 	validRef bool
+}
+
+var targetPaths []string
+
+func init() {
+	targetPaths = configutil.ReadPathsConfig("../configs/target_paths.csv")
 }
 
 func (pv *PathVector) describe() []string {
@@ -66,14 +73,14 @@ func (fv *FeatureVector) describe(pathsFilter []string) []string {
 }
 
 //ExtractFeatures extracts paths vector from session
-func ExtractFeatures(s *sstrg.SessionHistory, targetPaths []string) []string {
+func ExtractFeatures(s *sstrg.SessionData) []string {
 	var fv = extractFeatureVector(s)
 
 	return fv.describe(targetPaths)
 }
 
 //Extracts paths vector from session
-func extractFeatureVector(s *sstrg.SessionHistory) *FeatureVector {
+func extractFeatureVector(s *sstrg.SessionData) *FeatureVector {
 	//sstrg.SortRequestsByTime(s.Requests)
 
 	var fv = new(FeatureVector)

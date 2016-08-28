@@ -12,15 +12,16 @@ import (
 //SessionsTable is a thread-safe wrapper under session history
 type SessionsTable struct {
 	sync.RWMutex
-	H map[string]*SessionHistory
+	H map[string]*SessionData
 }
 
-//SessionHistory session statistics
-type SessionHistory struct {
+//SessionData session statistics
+type SessionData struct {
 	sync.RWMutex
 	Started  time.Time
 	Ended    time.Time
 	Requests []*RequestData
+	IP       string
 	Active   bool
 }
 
@@ -32,6 +33,7 @@ type RequestData struct {
 	Header      http.Header
 	Cookies     []*http.Cookie
 	ContentType int
+	IP          string
 	Time        time.Time
 }
 
