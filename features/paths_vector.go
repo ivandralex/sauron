@@ -38,11 +38,11 @@ func init() {
 
 func (pv *PathVector) describe() []string {
 	vector := []string{
-		strconv.FormatInt(int64(pv.counter), 10),
-		strconv.FormatFloat(pv.started, 'f', 2, 64),
-		strconv.FormatFloat(pv.averageDelay, 'f', 2, 64),
-		strconv.FormatFloat(pv.minDelay, 'f', 2, 64),
-		strconv.FormatFloat(pv.maxDelay, 'f', 2, 64)}
+		strconv.FormatInt(int64(pv.counter), 10)}
+	//strconv.FormatFloat(pv.started, 'f', 2, 64),
+	//strconv.FormatFloat(pv.averageDelay, 'f', 2, 64),
+	//strconv.FormatFloat(pv.minDelay, 'f', 2, 64),
+	//strconv.FormatFloat(pv.maxDelay, 'f', 2, 64)}
 	//strconv.FormatBool(pv.validRef)}
 
 	return vector
@@ -65,7 +65,7 @@ func (fv *FeatureVector) describe(pathsFilter []string) []string {
 			finalVector = append(finalVector, pv.describe()...)
 		} else {
 			//Add NaN vector if path was not visited
-			finalVector = append(finalVector, "0", "0", "0", "0", "0")
+			finalVector = append(finalVector, "0" /*, "0", "0", "0", "0"*/)
 		}
 	}
 
