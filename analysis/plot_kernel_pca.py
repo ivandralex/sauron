@@ -13,7 +13,10 @@ from sklearn.manifold import TSNE
 print(__doc__)
 
 from numpy import genfromtxt
-X = genfromtxt('../output/features/21_10k.csv', delimiter=',')
+X = genfromtxt('../output/features/new.csv', delimiter=',')
+np.random.shuffle(X)
+
+X = X[:10000,:]
 
 #Original data with label
 #y = X[:, 105:106]
@@ -37,12 +40,12 @@ y = y.tolist()
 #X_plot = kpca.inverse_transform(X_kpca)
 
 #gX_plot = PCA(n_components=3).fit_transform(X)
-X_plot = IncrementalPCA(n_components=3, batch_size=10).fit_transform(X)
+#X_plot = IncrementalPCA(n_components=3, batch_size=10).fit_transform(X)
 
 #ICA
-#rng = np.random.RandomState(42)
-#ica = FastICA(random_state=rng)
-#X_plot = ica.fit(X).transform(X)  # Estimate the sources
+rng = np.random.RandomState(42)
+ica = FastICA(random_state=rng)
+X_plot = ica.fit(X).transform(X)  # Estimate the sources
 
 #t-sne
 X = X_plot
