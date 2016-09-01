@@ -1,4 +1,4 @@
-package extractor
+package sauron
 
 import (
 	"encoding/csv"
@@ -255,8 +255,6 @@ func SessionCheckHandler(w http.ResponseWriter, r *http.Request) {
 	if sessionKey == "" {
 		sessionKey = sstrg.GetSessionKey(r)
 	}
-
-	fmt.Fprint(os.Stdout, sessionKey)
 
 	sessions.RLock()
 
