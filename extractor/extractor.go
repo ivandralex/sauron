@@ -256,15 +256,17 @@ func SessionCheckHandler(w http.ResponseWriter, r *http.Request) {
 		sessionKey = sstrg.GetSessionKey(r)
 	}
 
+	fmt.Fprint(os.Stdout, sessionKey)
+
 	sessions.RLock()
 
 	if _, ok := sessions.H[sessionKey]; !ok {
 		fmt.Fprint(w, "Key Not Found: "+sessionKey)
+		sessions.RUnlock()
 		return
 	}
 
 	var session = sessions.H[sessionKey]
-
 	var label = defaultDetector.GetLabel(session)
 
 	sessions.RUnlock()

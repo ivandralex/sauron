@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"regexp"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 )
@@ -68,7 +69,18 @@ var resourcePathMasks = []string{
 
 //GetSessionKey generates session key form request headers
 func GetSessionKey(r *http.Request) string {
-	return r.Header.Get("X-Forwarded-For") // + "|" + r.Header.Get("User-Agent")
+	var ip = getIP(r)
+	return ip // + "|" + r.Header.Get("User-Agent")
+}
+
+func getIP(r *http.Request) string {
+	var ip = r.Header.Get("X-Forwarded-For")
+
+	if ip == "" {
+		ip = strings.Split(r.RemoteAddr, ":")[0]
+	}
+
+	return ip
 }
 
 //GetRequestData RequestData factory method
@@ -79,6 +91,7 @@ func GetRequestData(r *http.Request, useDataHeader bool) *RequestData {
 	request.Method = r.Method
 	request.Cookies = r.Cookies()
 	request.Header = r.Header
+	request.IP = getIP(r)
 	//Set request referer
 	var ref, err = url.Parse(r.Referer())
 
