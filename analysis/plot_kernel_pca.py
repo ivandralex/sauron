@@ -18,17 +18,20 @@ np.random.shuffle(X)
 
 X = X[:10000,:]
 
-#Original data with label
-#y = X[:, 105:106]
-#X = X[:, :105]
+#Counts only
+num_features = X.shape[1]
+y = X[:, num_features - 1 : num_features]
+X = X[:, :num_features]
 
-#Select path vector
-#5n - 4
-#X = X[:, 51:55]
+#Let's label humans
+#for i in range(0, X.shape[0]):
+#    for j in range(11, X.shape[1]):
+#        if X[i][j] > 0:
+#            y[i] = 2
 
-#Counts onlys
-y = X[:, 21:22]
-X = X[:, :21]
+#Counts onlys (without kissmx e)
+#y = X[:, 21:22]
+#X = X[:, 4:10]
 
 print X.shape
 print y.shape
@@ -40,12 +43,12 @@ y = y.tolist()
 #X_plot = kpca.inverse_transform(X_kpca)
 
 #gX_plot = PCA(n_components=3).fit_transform(X)
-#X_plot = IncrementalPCA(n_components=3, batch_size=10).fit_transform(X)
+X_plot = IncrementalPCA(n_components=5, batch_size=10).fit_transform(X)
 
 #ICA
-rng = np.random.RandomState(42)
-ica = FastICA(random_state=rng)
-X_plot = ica.fit(X).transform(X)  # Estimate the sources
+#rng = np.random.RandomState(42)
+#ica = FastICA(random_state=rng)
+#X_plot = ica.fit(X).transform(X)  # Estimate the sources
 
 #t-sne
 X = X_plot

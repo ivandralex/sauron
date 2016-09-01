@@ -1,6 +1,8 @@
 package detectors
 
 import (
+	"fmt"
+
 	"github.com/sauron/config"
 	"github.com/sauron/session"
 )
@@ -8,7 +10,7 @@ import (
 //TODO: it's not a very good idea to use global var here
 var humanPaths map[string]bool
 
-//TODO: check guidelines if it's a good idea to read config here rather than get it as argument in GetLabel
+//TODO: check guidelines if it's a good idea to read config here rather then get it as argument in GetLabel
 func init() {
 	humanPaths = make(map[string]bool)
 	var paths = configutil.ReadPathsConfig("../configs/human_paths.csv")
@@ -18,13 +20,14 @@ func init() {
 	}
 }
 
-//GetLabel returns label for session by analyzing visited "human" paths
-func GetLabel(s *sstrg.SessionData) string {
+//GetNaiveHumanLabel returns label for session by analyzing visited "human" paths
+func GetNaiveHumanLabel(s *sstrg.SessionData) string {
 	for _, r := range s.Requests {
 		if _, ok := humanPaths[r.Path]; ok {
-			return "0"
+			fmt.Printf("Found human %s\n", s.IP)
+			return "2"
 		}
 	}
 
-	return "1"
+	return "0"
 }

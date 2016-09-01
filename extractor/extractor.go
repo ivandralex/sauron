@@ -137,6 +137,12 @@ func dumpFeatures(w *csv.Writer, sessions *sstrg.SessionsTable) {
 		var fvDesc = pathvector.ExtractFeatures(s)
 		//Append label
 		var label = detectors.GetLabelByBlackList(s)
+
+		//If bot was not detected check if it's a human
+		if label == "0" {
+			label = detectors.GetNaiveHumanLabel(s)
+		}
+
 		fvDesc = append(fvDesc, label)
 
 		if err := w.Write(fvDesc); err != nil {
