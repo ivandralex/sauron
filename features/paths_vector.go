@@ -2,6 +2,7 @@ package pathvector
 
 import (
 	"math"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -27,13 +28,14 @@ type PathVector struct {
 	//Delays after previous request to different path of the same content type
 	chainDelays []float64
 	//Has referrer been requested?
-	validRef bool
+	ValidRef bool
 }
 
 var targetPaths []string
 
 func init() {
-	targetPaths = configutil.ReadPathsConfig("../configs/target_paths.csv")
+	absPath, _ := filepath.Abs("configs/target_paths.csv")
+	targetPaths = configutil.ReadPathsConfig(absPath)
 }
 
 func (pv *PathVector) describe() []string {
@@ -51,7 +53,7 @@ func (pv *PathVector) describe() []string {
 //FeatureVector feature representation of the session
 type FeatureVector struct {
 	//Vectors corresponding to every unique path
-	pathVectors        map[string]*PathVector
+	PathVectors        map[string]*PathVector
 	sessionDuration    float64
 	sessionStartHour   int
 	sessionStartMinute int
@@ -61,7 +63,7 @@ type FeatureVector struct {
 func (fv *FeatureVector) describe(pathsFilter []string) []string {
 	var finalVector []string
 	for _, path := range pathsFilter {
-		if pv, ok := fv.pathVectors[path]; ok {
+		if pv, ok := fv.PathVectors[path]; ok {
 			finalVector = append(finalVector, pv.describe()...)
 		} else {
 			//Add NaN vector if path was not visited
@@ -74,18 +76,18 @@ func (fv *FeatureVector) describe(pathsFilter []string) []string {
 
 //ExtractFeatures extracts paths vector from session
 func ExtractFeatures(s *sstrg.SessionData) []string {
-	var fv = extractFeatureVector(s)
+	var fv = ExtractFeatureVector(s)
 
 	return fv.describe(targetPaths)
 }
 
-//Extracts paths vector from session
-func extractFeatureVector(s *sstrg.SessionData) *FeatureVector {
+//ExtractFeatureVector extracts paths vector from session
+func ExtractFeatureVector(s *sstrg.SessionData) *FeatureVector {
 	//sstrg.SortRequestsByTime(s.Requests)
 
 	var fv = new(FeatureVector)
 	//TODO: init it above
-	fv.pathVectors = make(map[string]*PathVector)
+	fv.PathVectors = make(map[string]*PathVector)
 
 	var validRef bool
 	//Build path vectors map from requests
@@ -93,37 +95,37 @@ func extractFeatureVector(s *sstrg.SessionData) *FeatureVector {
 		//fmt.Fprintf(os.Stdout, "%v\n", r.Time)
 
 		//Have referrer of this request been requested?
-		if _, ok := fv.pathVectors[r.Referer]; ok {
+		if _, ok := fv.PathVectors[r.Referer]; ok {
 			validRef = true
 		}
 
-		if _, pv := fv.pathVectors[r.Path]; !pv {
-			fv.pathVectors[r.Path] = new(PathVector)
-			fv.pathVectors[r.Path].started = r.Time.Sub(s.Started).Seconds()
-			fv.pathVectors[r.Path].minDelay = math.MaxFloat64
-			fv.pathVectors[r.Path].validRef = validRef
+		if _, pv := fv.PathVectors[r.Path]; !pv {
+			fv.PathVectors[r.Path] = new(PathVector)
+			fv.PathVectors[r.Path].started = r.Time.Sub(s.Started).Seconds()
+			fv.PathVectors[r.Path].minDelay = math.MaxFloat64
+			fv.PathVectors[r.Path].ValidRef = validRef
 		} else {
 			//Delay after the last request with the same path
-			var delay = r.Time.Sub(fv.pathVectors[r.Path].last).Seconds()
-			fv.pathVectors[r.Path].delays = append(fv.pathVectors[r.Path].delays, delay)
-			fv.pathVectors[r.Path].averageDelay += delay
+			var delay = r.Time.Sub(fv.PathVectors[r.Path].last).Seconds()
+			fv.PathVectors[r.Path].delays = append(fv.PathVectors[r.Path].delays, delay)
+			fv.PathVectors[r.Path].averageDelay += delay
 			//Update max delay
-			if delay > fv.pathVectors[r.Path].maxDelay {
-				fv.pathVectors[r.Path].maxDelay = delay
+			if delay > fv.PathVectors[r.Path].maxDelay {
+				fv.PathVectors[r.Path].maxDelay = delay
 			}
 			//Update min delay
-			if delay < fv.pathVectors[r.Path].minDelay {
-				fv.pathVectors[r.Path].minDelay = delay
+			if delay < fv.PathVectors[r.Path].minDelay {
+				fv.PathVectors[r.Path].minDelay = delay
 			}
 		}
 
 		//If validRef is false for a single request in a session it's gonna be false for corresponding PathVector
-		fv.pathVectors[r.Path].validRef = fv.pathVectors[r.Path].validRef && validRef
-		fv.pathVectors[r.Path].last = r.Time
-		fv.pathVectors[r.Path].counter++
+		fv.PathVectors[r.Path].ValidRef = fv.PathVectors[r.Path].ValidRef && validRef
+		fv.PathVectors[r.Path].last = r.Time
+		fv.PathVectors[r.Path].counter++
 	}
 
-	for _, pathVector := range fv.pathVectors {
+	for _, pathVector := range fv.PathVectors {
 		if pathVector.counter == 1 {
 			pathVector.minDelay = 0
 			pathVector.averageDelay = 0

@@ -8,16 +8,18 @@ import (
 	"github.com/sauron/session"
 )
 
-//TODO: it's not a very good idea to use global var here
-var blackListedIPs map[string]bool
-
-//TODO: check guidelines if it's a good idea to read config here rather than get it as argument in GetLabel
-func init() {
-	blackListedIPs = configutil.ReadStringMap("../configs/ip_black_list.csv")
+//BlackListDetector detects bot by checking if client has ip from black list
+type BlackListDetector struct {
+	blackListedIPs map[string]bool
 }
 
-//GetLabelByBlackList returns label for session by checking
-func GetLabelByBlackList(s *sstrg.SessionData) string {
+//Init initializes human path detector
+func (d *BlackListDetector) Init(configPath string) {
+	d.blackListedIPs = configutil.ReadStringMap(configPath)
+}
+
+//GetLabel returns label for session by checking
+func (d *BlackListDetector) GetLabel(s *sstrg.SessionData) string {
 	//Convert IP to mask
 	parts := strings.Split(s.IP, ".")
 
@@ -30,8 +32,7 @@ func GetLabelByBlackList(s *sstrg.SessionData) string {
 	parts[3] = "*"
 	mask := strings.Join(parts, ".")
 
-	if _, ok := blackListedIPs[mask]; ok {
-		fmt.Printf("Found bot %s\n", s.IP)
+	if _, ok := d.blackListedIPs[mask]; ok {
 		return "1"
 	}
 

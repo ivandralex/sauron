@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/paulbellamy/ratecounter"
@@ -34,7 +35,7 @@ var config = struct {
 	emulateTime:        true,
 	beholdStat:         false,
 	beholdSessionsEnd:  true,
-	beholdFeatures:     true,
+	beholdFeatures:     false,
 	sessionsPeriod:     5,
 	statPeriod:         5,
 	featuresPeriod:     5,
@@ -44,12 +45,16 @@ var sessions = new(sstrg.SessionsTable)
 var emulatedTime time.Time
 var rpsCounter = ratecounter.NewRateCounter(10 * time.Second)
 
+var defaultDetector detectors.Detector
+
 func init() {
 	sessions.H = make(map[string]*sstrg.SessionData)
 }
 
 //Start features extractor
-func Start() {
+func Start(detector detectors.Detector) {
+	defaultDetector = detector
+
 	//Check if sessions active periodically
 	if config.beholdSessionsEnd {
 		go startSessionsBeholder(config.sessionsPeriod)
@@ -109,9 +114,10 @@ func startFeaturesBeholder(sessions *sstrg.SessionsTable, periodSec int) {
 	// fire once per second
 	t := time.NewTicker(time.Second * time.Duration(periodSec))
 
-	os.Remove("../output/features/new.csv")
+	absPath, _ := filepath.Abs("output/features/new.csv")
+	os.Remove(absPath)
 
-	f, err := os.Create("../output/features/new.csv")
+	f, err := os.Create(absPath)
 
 	if err != nil {
 		log.Fatalln("Error creating features file:", err)
@@ -136,11 +142,13 @@ func dumpFeatures(w *csv.Writer, sessions *sstrg.SessionsTable) {
 
 		var fvDesc = pathvector.ExtractFeatures(s)
 		//Append label
-		var label = detectors.GetLabelByBlackList(s)
+		var label = defaultDetector.GetLabel(s)
 
 		//If bot was not detected check if it's a human
 		if label == "0" {
-			label = detectors.GetNaiveHumanLabel(s)
+			label = defaultDetector.GetLabel(s)
+		} else {
+			fmt.Printf("Found bot %s\n", s.IP)
 		}
 
 		fvDesc = append(fvDesc, label)
@@ -238,4 +246,28 @@ func RawHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sessions.RUnlock()
+}
+
+//SessionCheckHandler checks session with default detector
+func SessionCheckHandler(w http.ResponseWriter, r *http.Request) {
+	var sessionKey = r.URL.Query().Get("key")
+
+	if sessionKey == "" {
+		sessionKey = sstrg.GetSessionKey(r)
+	}
+
+	sessions.RLock()
+
+	if _, ok := sessions.H[sessionKey]; !ok {
+		fmt.Fprint(w, "Key Not Found: "+sessionKey)
+		return
+	}
+
+	var session = sessions.H[sessionKey]
+
+	var label = defaultDetector.GetLabel(session)
+
+	sessions.RUnlock()
+
+	fmt.Fprint(w, label)
 }

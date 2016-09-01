@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sauron/detectors"
 	"github.com/sauron/extractor"
 	"github.com/sauron/session"
 )
@@ -21,7 +22,10 @@ func main() {
 		log.Println(http.ListenAndServe("localhost:6060", nil))
 	}()
 
-	extractor.Start()
+	var defaultDetector = new(detectors.BlackListDetector)
+	defaultDetector.Init("configs/ip_black_list.csv")
+
+	extractor.Start(defaultDetector)
 
 	readDump()
 }
