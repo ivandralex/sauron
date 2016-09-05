@@ -119,6 +119,15 @@ func GetRequestData(r *http.Request, useDataHeader bool) *RequestData {
 	return request
 }
 
+//GetCookiesFromCookiesString parses raw cookie string "key1=value1;key2=value2"
+func GetCookiesFromCookiesString(rawCookies string) []*http.Cookie {
+	header := http.Header{}
+	header.Add("Cookie", rawCookies)
+	request := http.Request{Header: header}
+
+	return request.Cookies()
+}
+
 //GetContentType get content type by resource path
 func GetContentType(path string) (string, int) {
 	//Set content type

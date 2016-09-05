@@ -10,13 +10,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sauron/app"
 	"github.com/sauron/detectors"
-	"github.com/sauron/extractor"
 	"github.com/sauron/session"
 )
 
 func main() {
-	http.HandleFunc("/stat", extractor.StatHandler)
+	http.HandleFunc("/stat", sauron.StatHandler)
 
 	go func() {
 		log.Println(http.ListenAndServe("localhost:6060", nil))
@@ -25,7 +25,7 @@ func main() {
 	var defaultDetector = new(detectors.BlackListDetector)
 	defaultDetector.Init("configs/ip_black_list.csv")
 
-	extractor.Start(defaultDetector)
+	sauron.Start(defaultDetector)
 
 	readDump()
 }
@@ -58,7 +58,7 @@ func readDump() {
 }
 
 func handleRequest(source []string) {
-	if len(source) > 6 {
+	if len(source) > 7 {
 		return
 	}
 
@@ -83,10 +83,10 @@ func handleRequest(source []string) {
 	request.Method = "GET"
 	request.Referer = source[1]
 	request.IP = strings.Split(source[2], ",")[0]
-
 	request.Path, request.ContentType = sstrg.GetContentType(request.Path)
+	request.Cookies = sstrg.GetCookiesFromCookiesString(source[6])
 
 	var sessionKey = request.IP // source[4]
 
-	extractor.HandleRequest(sessionKey, request)
+	sauron.HandleRequest(sessionKey, request)
 }

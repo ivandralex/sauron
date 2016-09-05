@@ -35,7 +35,7 @@ var config = struct {
 	emulateTime:        true,
 	beholdStat:         false,
 	beholdSessionsEnd:  true,
-	beholdFeatures:     false,
+	beholdFeatures:     true,
 	sessionsPeriod:     5,
 	statPeriod:         5,
 	featuresPeriod:     5,
