@@ -51,10 +51,13 @@ func init() {
 	sessions.H = make(map[string]*sstrg.SessionData)
 }
 
-//Start features extractor
-func Start(detector detectors.Detector) {
+//Configure configures app
+func Configure(detector detectors.Detector) {
 	defaultDetector = detector
+}
 
+//Start features extractor
+func Start() {
 	//Check if sessions active periodically
 	if config.beholdSessionsEnd {
 		go startSessionsBeholder(config.sessionsPeriod)

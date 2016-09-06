@@ -1,38 +1,19 @@
-package main
+package replay
 
 import (
 	"bufio"
 	"fmt"
 	"io"
-	"log"
-	"net/http"
 	"os"
 	"strings"
 	"time"
 
 	"github.com/sauron/app"
-	"github.com/sauron/detectors"
 	"github.com/sauron/session"
 )
 
-func main() {
-	http.HandleFunc("/stat", sauron.StatHandler)
-
-	go func() {
-		log.Println(http.ListenAndServe("localhost:6060", nil))
-	}()
-
-	var defaultDetector = new(detectors.BlackListDetector)
-	defaultDetector.Init("configs/ip_black_list.csv")
-
-	sauron.Start(defaultDetector)
-
-	readDump()
-}
-
-func readDump() {
-	var dumpPath = "/home/andrew/repos/data-miner-utils/dump.list"
-
+//Start starts replay of the traffic from the dump file
+func Start(dumpPath string) {
 	f, err := os.Open(dumpPath)
 
 	if err != nil {
