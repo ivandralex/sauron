@@ -27,8 +27,6 @@ type PathVector struct {
 	minDelay float64
 	//Delays after previous request to different path of the same content type
 	chainDelays []float64
-	//Has referrer been requested?
-	ValidRef bool
 }
 
 var targetPaths []string
@@ -45,7 +43,6 @@ func (pv *PathVector) describe() []string {
 	//strconv.FormatFloat(pv.averageDelay, 'f', 2, 64),
 	//strconv.FormatFloat(pv.minDelay, 'f', 2, 64),
 	//strconv.FormatFloat(pv.maxDelay, 'f', 2, 64)}
-	//strconv.FormatBool(pv.validRef)}
 
 	return vector
 }
@@ -89,21 +86,14 @@ func ExtractFeatureVector(s *sstrg.SessionData) *FeatureVector {
 	//TODO: init it above
 	fv.PathVectors = make(map[string]*PathVector)
 
-	var validRef bool
 	//Build path vectors map from requests
 	for _, r := range s.Requests {
 		//fmt.Fprintf(os.Stdout, "%v\n", r.Time)
-
-		//Have referrer of this request been requested?
-		if _, ok := fv.PathVectors[r.Referer]; ok {
-			validRef = true
-		}
 
 		if _, pv := fv.PathVectors[r.Path]; !pv {
 			fv.PathVectors[r.Path] = new(PathVector)
 			fv.PathVectors[r.Path].started = r.Time.Sub(s.Started).Seconds()
 			fv.PathVectors[r.Path].minDelay = math.MaxFloat64
-			fv.PathVectors[r.Path].ValidRef = validRef
 		} else {
 			//Delay after the last request with the same path
 			var delay = r.Time.Sub(fv.PathVectors[r.Path].last).Seconds()
@@ -119,8 +109,6 @@ func ExtractFeatureVector(s *sstrg.SessionData) *FeatureVector {
 			}
 		}
 
-		//If validRef is false for a single request in a session it's gonna be false for corresponding PathVector
-		fv.PathVectors[r.Path].ValidRef = fv.PathVectors[r.Path].ValidRef && validRef
 		fv.PathVectors[r.Path].last = r.Time
 		fv.PathVectors[r.Path].counter++
 	}
