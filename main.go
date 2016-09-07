@@ -21,13 +21,22 @@ func main() {
 		log.Println(http.ListenAndServe("localhost:3000", nil))
 	}()
 
-	//"../configs/human_paths.csv"
+	/* Detectors */
+	var compositeDetector = new(detectors.CompositeDetector)
+	compositeDetector.Init("")
 
-	var defaultDetector = new(detectors.BlackListDetector)
-	defaultDetector.Init("configs/ip_black_list.csv")
+	var d1 = new(detectors.BlackListDetector)
+	d1.Init("configs/ip_black_list.csv")
+	compositeDetector.AddDetector(d1)
 
-	sauron.Configure(defaultDetector)
-	//sauron.Start()
+	var d2 = new(detectors.HumanPathDetector)
+	d2.Init("configs/human_paths.csv")
+	compositeDetector.AddDetector(d2)
+	/* ~Detectors~ */
+
+	sauron.Configure(compositeDetector)
+	sauron.Start()
+
 	replay.Start("/home/andrew/repos/data-miner-utils/dump.list")
 
 	log.Println(http.ListenAndServe("localhost:6060", nil))
