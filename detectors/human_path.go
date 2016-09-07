@@ -21,12 +21,12 @@ func (d *HumanPathDetector) Init(configPath string) {
 }
 
 //GetLabel returns label for session by analyzing visited "human" paths
-func (d *HumanPathDetector) GetLabel(s *sstrg.SessionData) string {
+func (d *HumanPathDetector) GetLabel(s *sstrg.SessionData) int {
 	for _, r := range s.Requests {
 		if _, ok := d.humanPaths[r.Path]; ok {
-			return "2"
+			return HumanLabel
 		}
 	}
 
-	return "0"
+	return UnknownLabel
 }

@@ -19,13 +19,13 @@ func (d *BlackListDetector) Init(configPath string) {
 }
 
 //GetLabel returns label for session by checking
-func (d *BlackListDetector) GetLabel(s *sstrg.SessionData) string {
+func (d *BlackListDetector) GetLabel(s *sstrg.SessionData) int {
 	//Convert IP to mask
 	parts := strings.Split(s.IP, ".")
 
 	if len(parts) != 4 {
 		fmt.Printf("Incorrect IP: %s\n", s.IP)
-		return "0"
+		return UnknownLabel
 	}
 
 	parts[2] = "*"
@@ -33,8 +33,8 @@ func (d *BlackListDetector) GetLabel(s *sstrg.SessionData) string {
 	mask := strings.Join(parts, ".")
 
 	if _, ok := d.blackListedIPs[mask]; ok {
-		return "1"
+		return BotLabel
 	}
 
-	return "0"
+	return UnknownLabel
 }

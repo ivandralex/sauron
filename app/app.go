@@ -147,14 +147,9 @@ func dumpFeatures(w *csv.Writer, sessions *sstrg.SessionsTable) {
 		//Append label
 		var label = defaultDetector.GetLabel(s)
 
-		//If bot was not detected check if it's a human
-		if label == "0" {
-			label = defaultDetector.GetLabel(s)
-		} else {
-			fmt.Printf("Found bot %s\n", s.IP)
-		}
+		fmt.Printf("Label  %d\n", label)
 
-		fvDesc = append(fvDesc, label)
+		fvDesc = append(fvDesc, string(label))
 
 		if err := w.Write(fvDesc); err != nil {
 			log.Fatalln("Error writing record to csv:", err)
