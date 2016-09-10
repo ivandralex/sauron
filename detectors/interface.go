@@ -9,6 +9,8 @@ const (
 	BotLabel int = iota
 	//HumanLabel label for human
 	HumanLabel int = iota
+	//IrrelevantLabel label irrelevant fot detection task
+	IrrelevantLabel int = iota
 )
 
 // Detector is an interface implemented by all Detectors
