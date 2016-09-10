@@ -10,6 +10,8 @@ type HumanPathDetector struct {
 	humanPaths map[string]bool
 }
 
+//TODO: PathBasedDetector
+
 //Init initializes human path detector
 func (d *HumanPathDetector) Init(configPath string) {
 	d.humanPaths = make(map[string]bool)
