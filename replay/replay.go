@@ -35,6 +35,8 @@ func Start(dumpPath string) {
 		handleRequest(pieces)
 	}
 
+	fmt.Println("Replay finished")
+
 	f.Close()
 }
 
