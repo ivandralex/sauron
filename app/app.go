@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/paulbellamy/ratecounter"
@@ -147,7 +148,7 @@ func dumpFeatures(w *csv.Writer, sessions *sstrg.SessionsTable) {
 		//Append label
 		var label = defaultDetector.GetLabel(s)
 
-		fvDesc = append(fvDesc, string(label))
+		fvDesc = append(fvDesc, strconv.Itoa(label))
 
 		if err := w.Write(fvDesc); err != nil {
 			log.Fatalln("Error writing record to csv:", err)
