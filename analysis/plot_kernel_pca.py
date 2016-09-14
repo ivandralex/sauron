@@ -5,6 +5,7 @@ Features Visualization
 """
 
 import sys
+import mpld3
 
 import numpy as np
 from numpy import genfromtxt
@@ -57,7 +58,7 @@ if not tsne_from_dump:
 	#X_plot = IncrementalPCA(n_components=5, batch_size=10).fit_transform(X)
 
 	print "Finished PCA"
-b
+
 	#ICA
 	#rng = np.random.RandomState(42)
 	#ica = FastICA(random_state=rng)
@@ -86,10 +87,11 @@ else:
 		y = y_plot.tolist()
 	with open('./ips.pickle', 'r') as f:
 		ips = np.load(f)
+        ips = ips.tolist()
 
 print "Finished T-SNE"
 
-fig = plt.figure(2, figsize=(8, 6))
+#fig = plt.figure(2, figsize=(8, 6))
 
 patches = []
 patches.append(mpatches.Patch(color='blue', label='Unknown'))
@@ -102,18 +104,46 @@ plt.legend(handles=patches)
 cMap = colors.ListedColormap(['blue', 'red','green', 'grey'], 'indexed', 4)
 bounds=[0,1,2,3,4]
 norm = colors.BoundaryNorm(bounds, cMap.N)
-plt.scatter(X_plot[:, 0], X_plot[:, 1], c=y, cmap=cMap, norm=norm)
 plt.xlabel('1st eigenvector')
 plt.ylabel('2nd eigenvector')
 
-def onpick(event):
-	thisline = event.artist
-	xdata = thisline.get_xdata()
-	ydata = thisline.get_ydata()
-	ind = event.ind
-	print 'onpick points:', zip(xdata[ind], ydata[ind])
+#Labels
+fig, ax = plt.subplots(subplot_kw=dict(axisbg='#EEEEEE'))
+fig.set_figheight(12)
+fig.set_figwidth(12)
 
-fig.canvas.mpl_connect('pick_event', onpick)
+scatter = ax.scatter(X_plot[:, 0], X_plot[:, 1], c=y, cmap=cMap, norm=norm)
+ax.grid(color='white', linestyle='solid')
+
+ax.set_title("Session viz", size=20)
+
+# Define some CSS to control our custom labels
+css = """
+table
+{
+  border-collapse: collapse;
+}
+th
+{
+  color: #ffffff;
+  background-color: #000000;
+}
+td
+{
+  background-color: #cccccc;
+}
+table, th, td
+{
+  font-family:Arial, Helvetica, sans-serif;
+  border: 1px solid black;
+  text-align: right;
+}
+"""
+
+tooltip = mpld3.plugins.PointHTMLTooltip(scatter, labels=ips, css=css)
+mpld3.plugins.connect(fig, tooltip)
+
+mpld3.show()
 
 #
 # To getter a better understanding of interaction of the dimensions
@@ -128,7 +158,5 @@ fig.canvas.mpl_connect('pick_event', onpick)
 # ax.w_yaxis.set_ticklabels([])
 # ax.set_zlabel("3rd eigenvector")
 # ax.w_zaxis.set_ticklabels([])
-
-plt.show()
 
 print "Plotted"
