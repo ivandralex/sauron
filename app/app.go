@@ -148,6 +148,8 @@ func dumpFeatures(w *csv.Writer, sessions *sstrg.SessionsTable) {
 		//Append label
 		var label = defaultDetector.GetLabel(s)
 
+		fvDesc = append(fvDesc, s.IP)
+
 		fvDesc = append(fvDesc, strconv.Itoa(label))
 
 		if err := w.Write(fvDesc); err != nil {
