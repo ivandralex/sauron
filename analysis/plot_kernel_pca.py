@@ -145,6 +145,7 @@ table, th, td
 class ClickInfo(mpld3.plugins.PluginBase):
     """Plugin for getting info on click"""
 
+    #TODO: move this to separate js
     JAVASCRIPT = "window.ips = [\"" + string.join(ips, "\",\"") + "\"]"
     JAVASCRIPT += """
     mpld3.register_plugin("clickinfo", ClickInfo);
@@ -156,9 +157,24 @@ class ClickInfo(mpld3.plugins.PluginBase):
     };
 
     ClickInfo.prototype.draw = function(){
-        var obj = mpld3.get_element(this.props.id);
-        obj.elements().on("mousedown",
-                          function(d, i){console.log(ips[Number(i)]);});
+            var obj = mpld3.get_element(this.props.id);
+
+            obj.elements().on("mousedown", function(d, i){
+                var ip = ips[Number(i)];
+                console.log(ip);
+                var el = document.getElementById('ipLabel');
+                if(!el){
+                    var el = document.createElement('p')
+                    el.id = 'ipLabel';
+                    el.style.cssText = 'position: absolute; top: 0; left: 20';
+                    document.body.appendChild(el)
+                }
+                el.innerHTML = ip;
+                range = document.createRange();
+                range.selectNode(el);
+                window.getSelection().addRange(range);
+                document.execCommand('copy')
+        });
     }
     """
     def __init__(self, points):
