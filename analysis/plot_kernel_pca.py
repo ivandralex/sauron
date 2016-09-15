@@ -5,6 +5,7 @@ Features Visualization
 """
 
 import sys
+import string
 import mpld3
 
 import numpy as np
@@ -139,6 +140,34 @@ table, th, td
   text-align: right;
 }
 """
+
+#CLICK
+class ClickInfo(mpld3.plugins.PluginBase):
+    """Plugin for getting info on click"""
+
+    JAVASCRIPT = "window.ips = [\"" + string.join(ips, "\",\"") + "\"]"
+    JAVASCRIPT += """
+    mpld3.register_plugin("clickinfo", ClickInfo);
+    ClickInfo.prototype = Object.create(mpld3.Plugin.prototype);
+    ClickInfo.prototype.constructor = ClickInfo;
+    ClickInfo.prototype.requiredProps = ["id"];
+    function ClickInfo(fig, props){
+        mpld3.Plugin.call(this, fig, props);
+    };
+
+    ClickInfo.prototype.draw = function(){
+        var obj = mpld3.get_element(this.props.id);
+        obj.elements().on("mousedown",
+                          function(d, i){console.log(ips[Number(i)]);});
+    }
+    """
+    def __init__(self, points):
+        self.dict_ = {"type": "clickinfo",
+                      "id": mpld3.utils.get_id(points),}
+
+mpld3.plugins.connect(fig, ClickInfo(scatter))
+
+#~CLICK
 
 tooltip = mpld3.plugins.PointHTMLTooltip(scatter, labels=ips, css=css)
 mpld3.plugins.connect(fig, tooltip)
