@@ -22,7 +22,7 @@ from sklearn.manifold import TSNE
 print(__doc__)
 
 x_from_dump = len(sys.argv) == 1
-tsne_from_dump = True
+tsne_from_dump = len(sys.argv) == 1
 
 
 if not tsne_from_dump:
