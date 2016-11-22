@@ -42,11 +42,11 @@ func (pv *pathVector) describe() []string {
 
 //PathsVector feature representation of the session
 type PathsVector struct {
-	sessionDuration    float64
-	sessionStartHour   int
-	sessionStartMinute int
-	clientTimeZone     int
-	targetPaths        []string
+	//sessionDuration float64
+	//sessionStartHour   int
+	//sessionStartMinute int
+	//clientTimeZone int
+	targetPaths []string
 }
 
 //Init initializes extractor
