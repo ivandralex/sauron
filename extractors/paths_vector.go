@@ -10,8 +10,8 @@ import (
 	"github.com/sauron/session"
 )
 
-//PathVector vector of features inherited from http path
-type PathVector struct {
+//pathVector vector of features inherited from http path
+type pathVector struct {
 	//Delay of the first request (to this path) in the session
 	started float64
 	last    time.Time
@@ -29,7 +29,7 @@ type PathVector struct {
 	chainDelays []float64
 }
 
-func (pv *PathVector) describe() []string {
+func (pv *pathVector) describe() []string {
 	vector := []string{
 		strconv.FormatInt(int64(pv.counter), 10)}
 	//strconv.FormatFloat(pv.started, 'f', 2, 64),
@@ -40,28 +40,25 @@ func (pv *PathVector) describe() []string {
 	return vector
 }
 
-var targetPaths []string
-
-//FeatureVector feature representation of the session
-type FeatureVector struct {
-	//Vectors corresponding to every unique path
-	PathVectors        map[string]*PathVector
+//PathsVector feature representation of the session
+type PathsVector struct {
 	sessionDuration    float64
 	sessionStartHour   int
 	sessionStartMinute int
 	clientTimeZone     int
+	targetPaths        []string
 }
 
 //Init initializes extractor
-func (fv *FeatureVector) Init(configPath string) {
+func (fv *PathsVector) Init(configPath string) {
 	absPath, _ := filepath.Abs(configPath)
-	targetPaths = configutil.ReadPathsConfig(absPath)
+	fv.targetPaths = configutil.ReadPathsConfig(absPath)
 }
 
-func (fv *FeatureVector) describe(pathsFilter []string) []string {
+func (fv *PathsVector) describe(pathsFilter []string, pathVectors *map[string]*pathVector) []string {
 	var finalVector []string
 	for _, path := range pathsFilter {
-		if pv, ok := fv.PathVectors[path]; ok {
+		if pv, ok := (*pathVectors)[path]; ok {
 			finalVector = append(finalVector, pv.describe()...)
 		} else {
 			//Add NaN vector if path was not visited
@@ -73,40 +70,39 @@ func (fv *FeatureVector) describe(pathsFilter []string) []string {
 }
 
 //ExtractFeatures extracts paths vector from session
-func (fv *FeatureVector) ExtractFeatures(s *sstrg.SessionData) []string {
+func (fv *PathsVector) ExtractFeatures(s *sstrg.SessionData) []string {
 	//sstrg.SortRequestsByTime(s.Requests)
 
-	//TODO: init it above
-	fv.PathVectors = make(map[string]*PathVector)
+	pathVectors := make(map[string]*pathVector)
 
 	//Build path vectors map from requests
 	for _, r := range s.Requests {
 		//fmt.Fprintf(os.Stdout, "%v\n", r.Time)
 
-		if _, pv := fv.PathVectors[r.Path]; !pv {
-			fv.PathVectors[r.Path] = new(PathVector)
-			fv.PathVectors[r.Path].started = r.Time.Sub(s.Started).Seconds()
-			fv.PathVectors[r.Path].minDelay = math.MaxFloat64
+		if _, pv := pathVectors[r.Path]; !pv {
+			pathVectors[r.Path] = new(pathVector)
+			pathVectors[r.Path].started = r.Time.Sub(s.Started).Seconds()
+			pathVectors[r.Path].minDelay = math.MaxFloat64
 		} else {
 			//Delay after the last request with the same path
-			var delay = r.Time.Sub(fv.PathVectors[r.Path].last).Seconds()
-			fv.PathVectors[r.Path].delays = append(fv.PathVectors[r.Path].delays, delay)
-			fv.PathVectors[r.Path].averageDelay += delay
+			var delay = r.Time.Sub(pathVectors[r.Path].last).Seconds()
+			pathVectors[r.Path].delays = append(pathVectors[r.Path].delays, delay)
+			pathVectors[r.Path].averageDelay += delay
 			//Update max delay
-			if delay > fv.PathVectors[r.Path].maxDelay {
-				fv.PathVectors[r.Path].maxDelay = delay
+			if delay > pathVectors[r.Path].maxDelay {
+				pathVectors[r.Path].maxDelay = delay
 			}
 			//Update min delay
-			if delay < fv.PathVectors[r.Path].minDelay {
-				fv.PathVectors[r.Path].minDelay = delay
+			if delay < pathVectors[r.Path].minDelay {
+				pathVectors[r.Path].minDelay = delay
 			}
 		}
 
-		fv.PathVectors[r.Path].last = r.Time
-		fv.PathVectors[r.Path].counter++
+		pathVectors[r.Path].last = r.Time
+		pathVectors[r.Path].counter++
 	}
 
-	for _, pathVector := range fv.PathVectors {
+	for _, pathVector := range pathVectors {
 		if pathVector.counter == 1 {
 			pathVector.minDelay = 0
 			pathVector.averageDelay = 0
@@ -115,5 +111,5 @@ func (fv *FeatureVector) ExtractFeatures(s *sstrg.SessionData) []string {
 		}
 	}
 
-	return fv.describe(targetPaths)
+	return fv.describe(fv.targetPaths, &pathVectors)
 }
