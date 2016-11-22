@@ -1,4 +1,4 @@
-package pathvector
+package extractors
 
 import (
 	"math"
@@ -29,13 +29,6 @@ type PathVector struct {
 	chainDelays []float64
 }
 
-var targetPaths []string
-
-func init() {
-	absPath, _ := filepath.Abs("configs/target_paths.csv")
-	targetPaths = configutil.ReadPathsConfig(absPath)
-}
-
 func (pv *PathVector) describe() []string {
 	vector := []string{
 		strconv.FormatInt(int64(pv.counter), 10)}
@@ -47,6 +40,8 @@ func (pv *PathVector) describe() []string {
 	return vector
 }
 
+var targetPaths []string
+
 //FeatureVector feature representation of the session
 type FeatureVector struct {
 	//Vectors corresponding to every unique path
@@ -55,6 +50,12 @@ type FeatureVector struct {
 	sessionStartHour   int
 	sessionStartMinute int
 	clientTimeZone     int
+}
+
+//Init initializes extractor
+func (fv *FeatureVector) Init(configPath string) {
+	absPath, _ := filepath.Abs(configPath)
+	targetPaths = configutil.ReadPathsConfig(absPath)
 }
 
 func (fv *FeatureVector) describe(pathsFilter []string) []string {
@@ -72,17 +73,9 @@ func (fv *FeatureVector) describe(pathsFilter []string) []string {
 }
 
 //ExtractFeatures extracts paths vector from session
-func ExtractFeatures(s *sstrg.SessionData) []string {
-	var fv = ExtractFeatureVector(s)
-
-	return fv.describe(targetPaths)
-}
-
-//ExtractFeatureVector extracts paths vector from session
-func ExtractFeatureVector(s *sstrg.SessionData) *FeatureVector {
+func (fv *FeatureVector) ExtractFeatures(s *sstrg.SessionData) []string {
 	//sstrg.SortRequestsByTime(s.Requests)
 
-	var fv = new(FeatureVector)
 	//TODO: init it above
 	fv.PathVectors = make(map[string]*PathVector)
 
@@ -122,5 +115,5 @@ func ExtractFeatureVector(s *sstrg.SessionData) *FeatureVector {
 		}
 	}
 
-	return fv
+	return fv.describe(targetPaths)
 }

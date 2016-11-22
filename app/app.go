@@ -12,7 +12,7 @@ import (
 
 	"github.com/paulbellamy/ratecounter"
 	"github.com/sauron/detectors"
-	"github.com/sauron/features"
+	"github.com/sauron/extractors"
 	"github.com/sauron/session"
 	"github.com/sauron/stat"
 )
@@ -47,14 +47,16 @@ var emulatedTime time.Time
 var rpsCounter = ratecounter.NewRateCounter(10 * time.Second)
 
 var defaultDetector detectors.Detector
+var defaultExtractor extractors.Extractor
 
 func init() {
 	sessions.H = make(map[string]*sstrg.SessionData)
 }
 
 //Configure configures app
-func Configure(detector detectors.Detector) {
+func Configure(detector detectors.Detector, extractor extractors.Extractor) {
 	defaultDetector = detector
+	defaultExtractor = extractor
 }
 
 //Start features extractor
@@ -144,7 +146,7 @@ func dumpFeatures(w *csv.Writer, sessions *sstrg.SessionsTable) {
 			continue
 		}
 
-		var fvDesc = pathvector.ExtractFeatures(s)
+		var fvDesc = defaultExtractor.ExtractFeatures(s)
 		//Append label
 		var label = defaultDetector.GetLabel(s)
 
