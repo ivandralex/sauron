@@ -58,13 +58,28 @@ var regExps = []*regexp.Regexp{
 	regexp.MustCompile(`\.(xml|json|zip|gz|pdf|ico|doc|docx|xls|ppt|txt)$`),
 }
 
+//ImageMask path mask for images
+const ImageMask = "/image.jpg"
+
+//FontMask path mask for font
+const FontMask = "/font.ttf"
+
+//ScriptMask path mask for script
+const ScriptMask = "/script.js"
+
+//StyleMask path mask for CSS
+const StyleMask = "/style.css"
+
+//StaticMask path mask for unknown static content
+const StaticMask = "/other.static"
+
 //Replacements for resource paths
 var resourcePathMasks = []string{
-	"/image.jpg",
-	"/font.ttf",
-	"/script.js",
-	"/style.css",
-	"/other.static",
+	ImageMask,
+	FontMask,
+	ScriptMask,
+	StyleMask,
+	StaticMask,
 }
 
 //GetSessionKey generates session key form request headers

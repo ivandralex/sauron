@@ -41,10 +41,6 @@ func Start(dumpPath string) {
 }
 
 func handleRequest(source []string) {
-	if len(source) > 7 {
-		return
-	}
-
 	//var args = source[5]
 
 	var request = new(sstrg.RequestData)
