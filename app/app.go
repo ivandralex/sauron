@@ -131,6 +131,15 @@ func startFeaturesBeholder(sessions *sstrg.SessionsTable, periodSec int) {
 
 	w := csv.NewWriter(f)
 
+	columnNames := []string{"key"}
+	featureNames := defaultExtractor.GetFeaturesNames()
+	columnNames = append(columnNames, featureNames...)
+	columnNames = append(columnNames, "label")
+
+	if err := w.Write(columnNames); err != nil {
+		log.Fatalln("Error writing header to csv:", err)
+	}
+
 	for {
 		dumpFeatures(w, sessions)
 		<-t.C
@@ -146,15 +155,14 @@ func dumpFeatures(w *csv.Writer, sessions *sstrg.SessionsTable) {
 			continue
 		}
 
+		var line = []string{key}
 		var fvDesc = defaultExtractor.ExtractFeatures(s)
+		line = append(line, fvDesc...)
 		//Append label
 		var label = defaultDetector.GetLabel(s)
+		line = append(line, strconv.Itoa(label))
 
-		fvDesc = append(fvDesc, s.IP)
-
-		fvDesc = append(fvDesc, strconv.Itoa(label))
-
-		if err := w.Write(fvDesc); err != nil {
+		if err := w.Write(line); err != nil {
 			log.Fatalln("Error writing record to csv:", err)
 		}
 

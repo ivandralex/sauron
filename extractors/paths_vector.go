@@ -113,3 +113,8 @@ func (fv *PathsVector) ExtractFeatures(s *sstrg.SessionData) []string {
 
 	return fv.describe(fv.targetPaths, &pathVectors)
 }
+
+//GetFeaturesNames array of features names
+func (fv *PathsVector) GetFeaturesNames() []string {
+	return fv.targetPaths
+}

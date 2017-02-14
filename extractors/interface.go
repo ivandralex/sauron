@@ -6,4 +6,5 @@ import "github.com/sauron/session"
 type Extractor interface {
 	Init(configPath string)
 	ExtractFeatures(s *sstrg.SessionData) []string
+	GetFeaturesNames() []string
 }
