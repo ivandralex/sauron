@@ -31,7 +31,7 @@ if not tsne_from_dump:
 			X = np.load(f)
 	else:
 		data_path = sys.argv[1]
-		dtypes = (float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, '|S15', float)
+		dtypes = ('|S15', float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float)
 		X = genfromtxt(data_path, delimiter=',', dtype=dtypes)
 		with open('./dump.pickle', 'w+') as f:
 			X.dump(f)
@@ -45,8 +45,8 @@ if not tsne_from_dump:
 	X = X[:20000]
 
 	y = [seq[-1] for seq in X]
-	ips = [seq[-2] for seq in X]
-	X = [tuple(seq)[0:-2] for seq in X]
+	ips = [seq[0] for seq in X]
+	X = [tuple(seq)[1:-1] for seq in X]
 
 	print "Finished slicing and transforming"
 
@@ -54,9 +54,8 @@ if not tsne_from_dump:
 	#X_kpca = kpca.fit_transform(X)
 	#X_plot = kpca.inverse_transform(X_kpca)
 
-	X_plot = X
-	#X_plot = PCA(n_components=20).fit_transform(X)
-	#X_plot = IncrementalPCA(n_components=5, batch_size=10).fit_transform(X)
+	X_plot = PCA(n_components=20).fit_transform(X)
+	X_plot = IncrementalPCA(n_components=5, batch_size=10).fit_transform(X)
 
 	print "Finished PCA"
 
@@ -66,10 +65,9 @@ if not tsne_from_dump:
 	#X_plot = ica.fit(X).transform(X)  # Estimate the sources
 
 	#t-sne
-	X = X_plot
-	model = TSNE(n_components=2, random_state=0)
-	np.set_printoptions(suppress=True)
-	X_plot = model.fit_transform(X)
+	#model = TSNE(n_components=2, random_state=0)
+	#np.set_printoptions(suppress=True)
+	#X_plot = model.fit_transform(X)
 
 	with open('./tsne_x.pickle', 'w+') as f:
 		X_plot.dump(f)
