@@ -28,15 +28,17 @@ var config = struct {
 	statPeriod         int
 	maxInactiveMinutes float64
 	//Feature flags
-	beholdStat        bool
-	beholdFeatures    bool
-	beholdSessionsEnd bool
+	beholdStat         bool
+	beholdFeatures     bool
+	writeWhenConfident bool
+	beholdSessionsEnd  bool
 }{
 	useDataHeader:      true,
 	emulateTime:        true,
 	beholdStat:         false,
 	beholdSessionsEnd:  true,
 	beholdFeatures:     true,
+	writeWhenConfident: true,
 	sessionsPeriod:     5,
 	statPeriod:         5,
 	featuresPeriod:     5,
@@ -155,11 +157,16 @@ func dumpFeatures(w *csv.Writer, sessions *sstrg.SessionsTable) {
 			continue
 		}
 
+		//Append label
+		var label = defaultDetector.GetLabel(s)
+
+		if config.writeWhenConfident && label != detectors.HumanLabel && label != detectors.BotLabel {
+			continue
+		}
+
 		var line = []string{key}
 		var fvDesc = defaultExtractor.ExtractFeatures(s)
 		line = append(line, fvDesc...)
-		//Append label
-		var label = defaultDetector.GetLabel(s)
 		line = append(line, strconv.Itoa(label))
 
 		if err := w.Write(line); err != nil {
