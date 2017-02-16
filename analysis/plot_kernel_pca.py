@@ -31,7 +31,7 @@ if not tsne_from_dump:
 			X = np.load(f)
 	else:
 		data_path = sys.argv[1]
-		dtypes = ('|S15', float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float)
+		dtypes = ('|S1000', '|S1000', float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float)
 		X = genfromtxt(data_path, delimiter=',', dtype=dtypes)
 		with open('./dump.pickle', 'w+') as f:
 			X.dump(f)
@@ -42,7 +42,7 @@ if not tsne_from_dump:
 
 	print "Finished shuffling"
 
-	X = X[:20000]
+	X = X[:30000]
 
 	y = [seq[-1] for seq in X]
 	ips = [seq[0] for seq in X]
@@ -113,8 +113,6 @@ fig.set_figwidth(12)
 
 scatter = ax.scatter(X_plot[:, 0], X_plot[:, 1], c=y, cmap=cMap, norm=norm)
 ax.grid(color='white', linestyle='solid')
-
-ax.set_title("Session viz", size=20)
 
 # Define some CSS to control our custom labels
 css = """

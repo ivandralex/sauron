@@ -1,13 +1,14 @@
 package sauron
 
 import (
-	"encoding/csv"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/paulbellamy/ratecounter"
@@ -125,20 +126,22 @@ func startFeaturesBeholder(sessions *sstrg.SessionsTable, periodSec int) {
 	absPath, _ := filepath.Abs("output/features/new.csv")
 	os.Remove(absPath)
 
-	f, err := os.Create(absPath)
+	w, err := os.Create(absPath)
 
 	if err != nil {
 		log.Fatalln("Error creating features file:", err)
 	}
 
-	w := csv.NewWriter(f)
+	if err != nil {
+		log.Fatalln("Could not open dump file for writing:", err)
+	}
 
 	columnNames := []string{"key"}
 	featureNames := defaultExtractor.GetFeaturesNames()
 	columnNames = append(columnNames, featureNames...)
 	columnNames = append(columnNames, "label")
 
-	if err := w.Write(columnNames); err != nil {
+	if err := printCSV(w, columnNames); err != nil {
 		log.Fatalln("Error writing header to csv:", err)
 	}
 
@@ -148,7 +151,24 @@ func startFeaturesBeholder(sessions *sstrg.SessionsTable, periodSec int) {
 	}
 }
 
-func dumpFeatures(w *csv.Writer, sessions *sstrg.SessionsTable) {
+func printCSV(w io.Writer, row []string) error {
+	sep := ""
+	for _, cell := range row {
+		_, err := fmt.Fprintf(w, `%s"%s"`, sep, strings.Replace(cell, `"`, `""`, -1))
+		if err != nil {
+			return err
+		}
+		sep = ","
+	}
+	_, err := fmt.Fprintf(w, "\n")
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func dumpFeatures(w io.Writer, sessions *sstrg.SessionsTable) {
 	sessions.Lock()
 
 	for key, s := range sessions.H {
@@ -164,12 +184,13 @@ func dumpFeatures(w *csv.Writer, sessions *sstrg.SessionsTable) {
 			continue
 		}
 
-		var line = []string{key}
+		line := strings.Split(key, "|")
+
 		var fvDesc = defaultExtractor.ExtractFeatures(s)
 		line = append(line, fvDesc...)
 		line = append(line, strconv.Itoa(label))
 
-		if err := w.Write(line); err != nil {
+		if err := printCSV(w, line); err != nil {
 			log.Fatalln("Error writing record to csv:", err)
 		}
 
@@ -178,8 +199,6 @@ func dumpFeatures(w *csv.Writer, sessions *sstrg.SessionsTable) {
 	}
 
 	sessions.Unlock()
-
-	w.Flush()
 }
 
 //StatHandler outputs current RPS

@@ -65,7 +65,8 @@ func handleRequest(source []string) {
 	request.Path, request.ContentType = sstrg.GetContentType(request.Path)
 	request.Cookies = sstrg.GetCookiesFromCookiesString(source[6])
 
-	var sessionKey = request.IP // source[4]
+	//TODO: external key func
+	var sessionKey = request.IP + "|" + source[4]
 
 	sauron.HandleRequest(sessionKey, request)
 }
