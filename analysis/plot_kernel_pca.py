@@ -9,6 +9,7 @@ import string
 import mpld3
 
 import numpy as np
+import pandas
 from numpy import genfromtxt
 
 import matplotlib.pyplot as plt
@@ -31,10 +32,14 @@ if not tsne_from_dump:
 			X = np.load(f)
 	else:
 		data_path = sys.argv[1]
-		dtypes = ('|S1000', '|S1000', float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float)
-		X = genfromtxt(data_path, delimiter=',', dtype=dtypes)
+		data = pandas.read_csv(data_path)
+		X = data.as_matrix()# genfromtxt(data_path, delimiter=',',usecols=np.arange(0,1434))
 		with open('./dump.pickle', 'w+') as f:
 			X.dump(f)
+
+	print "Finished reading"
+
+	np.random.shuffle(X)
 
 	print "Finished reading"
 
@@ -45,8 +50,11 @@ if not tsne_from_dump:
 	X = X[:30000]
 
 	y = [seq[-1] for seq in X]
-	ips = [seq[0] for seq in X]
-	X = [tuple(seq)[1:-1] for seq in X]
+	keys = [seq[0:2] ]
+	ips = []
+	for seq in X:
+		ips.append(seq[0] + "|" + seq[1])
+	X = [tuple(seq)[2:-1] for seq in X]
 
 	print "Finished slicing and transforming"
 
@@ -55,7 +63,7 @@ if not tsne_from_dump:
 	#X_plot = kpca.inverse_transform(X_kpca)
 
 	X_plot = PCA(n_components=20).fit_transform(X)
-	X_plot = IncrementalPCA(n_components=5, batch_size=10).fit_transform(X)
+	X_plot = IncrementalPCA(n_components=2, batch_size=10).fit_transform(X)
 
 	print "Finished PCA"
 
