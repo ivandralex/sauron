@@ -9,16 +9,12 @@ import string
 import mpld3
 
 import numpy as np
+import pandas
 from numpy import genfromtxt
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib import colors
-
-from sklearn.cluster import DBSCAN
-from sklearn import metrics
-from sklearn.datasets.samples_generator import make_blobs
-from sklearn.preprocessing import StandardScaler
 
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.decomposition import PCA, KernelPCA, FastICA, IncrementalPCA
@@ -27,7 +23,7 @@ from sklearn.manifold import TSNE
 print(__doc__)
 
 x_from_dump = len(sys.argv) == 1
-tsne_from_dump = False#len(sys.argv) == 1
+tsne_from_dump = len(sys.argv) == 1
 
 
 if not tsne_from_dump:
@@ -36,8 +32,8 @@ if not tsne_from_dump:
 			X = np.load(f)
 	else:
 		data_path = sys.argv[1]
-		dtypes = ('|S15', float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float, float)
-		X = genfromtxt(data_path, delimiter=',', dtype=dtypes)
+		data = pandas.read_csv(data_path)
+		X = data.as_matrix()# genfromtxt(data_path, delimiter=',',usecols=np.arange(0,1434))
 		with open('./dump.pickle', 'w+') as f:
 			X.dump(f)
 
@@ -45,18 +41,85 @@ if not tsne_from_dump:
 
 	np.random.shuffle(X)
 
+	print "Rows: %s" % len(X)
+
+	X = X[:30000]
+
+	print "Finished reading"
+
+	np.random.shuffle(X)
+
 	print "Finished shuffling"
 
-	X = X[:20000]
-
 	y = [seq[-1] for seq in X]
-	ips = [seq[0] for seq in X]
-	X = [tuple(seq)[1:-1] for seq in X]
+	keys = [seq[0:2] ]
+	ips = []
+	for seq in X:
+		ips.append(seq[0] + "|" + seq[1])
+	X = [tuple(seq)[2:-1] for seq in X]
+
+	data = data.drop('user_agent', 1)
+	data = data.drop('ip', 1)
 
 	print "Finished slicing and transforming"
 
-	X_plot = X
+	#kpca = KernelPCA(kernel="rbf", fit_inverse_transform=True, gamma=10)
+	#X_kpca = kpca.fit_transform(X)
+	#X_plot = kpca.inverse_transform(X_kpca)
 
+	n_components = 2
+
+	pca = PCA(n_components=n_components)
+	X_plot = pca.fit_transform(X[:])
+
+	print pca.explained_variance_ratio_
+
+	#X_plot = IncrementalPCA(n_components=2, batch_size=10).fit_transform(X)
+	dominator_features = 5
+
+	print "Finished PCA: %.3f of variance retained" % np.sum(pca.explained_variance_ratio_)
+	i = 0
+	while i<n_components:
+		print "Feature %s dominated by: %s\n" % (i, data.columns.values[np.argpartition(pca.components_[0], -dominator_features)[-dominator_features:]])
+		i = i + 1
+
+	print("\n\n\n\n")
+
+	#
+	# To getter a better understanding of interaction of the dimensions
+	# plot the first three PCA dimensions
+	#fig = plt.figure(1, figsize=(8, 6))
+	#ax = Axes3D(fig, elev=-150, azim=110)
+ 	#ax.scatter(X_plot[:, 0], X_plot[:, 1], X_plot[:, 2], c=y, cmap=plt.cm.Paired)
+	#ax.set_title("Visualization")
+	#x.set_xlabel("1st eigenvector")
+	#ax.w_xaxis.set_ticklabels([])
+	#ax.set_ylabel("2nd eigenvector")
+	#ax.w_yaxis.set_ticklabels([])
+	#ax.set_zlabel("3rd eigenvector")
+	#x.w_zaxis.set_ticklabels([])
+	#plt.show()
+
+
+	#ICA
+	#rng = np.random.RandomState(42)
+	#ica = FastICA(random_state=rng)
+	#X_plot = ica.fit(X).transform(X)  # Estimate the sources
+
+	#t-sne
+	model = TSNE(n_components=2, random_state=241)
+	np.set_printoptions(suppress=True)
+	X_plot = model.fit_transform(X_plot)
+
+	with open('./tsne_x.pickle', 'w+') as f:
+		X_plot.dump(f)
+	with open('./tsne_y.pickle', 'w+') as f:
+		y_plot = np.asarray(y)
+		y_plot.dump(f)
+	with open('./ips.pickle', 'w+') as f:
+		ips_list = np.asarray(ips)
+		print ips_list
+		ips_list.dump(f)
 else:
 	with open('./tsne_x.pickle', 'r') as f:
 		X_plot = np.load(f)
@@ -67,34 +130,9 @@ else:
 		ips = np.load(f)
         ips = ips.tolist()
 
+print "Finished T-SNE"
 
-labels_true = y
-X = np.array(X_plot)
-
-#from sklearn.ensemble import RandomForestClassifier
-#clf = RandomForestClassifier(n_estimators=10)
-#clf = clf.fit(X, Y)
-
-db = DBSCAN(eps=0.3, min_samples=10, n_jobs=4).fit(X)
-core_samples_mask = np.zeros_like(db.labels_, dtype=bool)
-core_samples_mask[db.core_sample_indices_] = True
-labels = db.labels_
-
-# Number of clusters in labels, ignoring noise if present.
-n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
-
-print('Estimated number of clusters: %d' % n_clusters_)
-print("Homogeneity: %0.3f" % metrics.homogeneity_score(labels_true, labels))
-print("Completeness: %0.3f" % metrics.completeness_score(labels_true, labels))
-print("V-measure: %0.3f" % metrics.v_measure_score(labels_true, labels))
-print("Adjusted Rand Index: %0.3f"
-      % metrics.adjusted_rand_score(labels_true, labels))
-print("Adjusted Mutual Information: %0.3f"
-      % metrics.adjusted_mutual_info_score(labels_true, labels))
-print("Silhouette Coefficient: %0.3f"
-      % metrics.silhouette_score(X, labels))
-
-fig = plt.figure(2, figsize=(8, 6))
+#fig = plt.figure(2, figsize=(8, 6))
 
 patches = []
 patches.append(mpatches.Patch(color='blue', label='Unknown'))
@@ -103,33 +141,91 @@ patches.append(mpatches.Patch(color='green', label='Human'))
 patches.append(mpatches.Patch(color='grey', label='Irrelevant'))
 plt.legend(handles=patches)
 
+# Plot the training points
 cMap = colors.ListedColormap(['blue', 'red','green', 'grey'], 'indexed', 4)
 bounds=[0,1,2,3,4]
 norm = colors.BoundaryNorm(bounds, cMap.N)
+plt.xlabel('1st eigenvector')
+plt.ylabel('2nd eigenvector')
 
-# Black removed and is used for noise instead.
-unique_labels = set(labels)
-colors = plt.cm.Spectral(np.linspace(0, 1, len(unique_labels)))
-for k, col in zip(unique_labels, colors):
-    if k == -1:
-        # Black used for noise.
-        col = 'k'
+#Labels
+fig, ax = plt.subplots(subplot_kw=dict(axisbg='#EEEEEE'))
+fig.set_figheight(12)
+fig.set_figwidth(12)
 
-    class_member_mask = (labels == k)
+scatter = ax.scatter(X_plot[:, 0], X_plot[:, 1], c=y, cmap=cMap, norm=norm)
+ax.grid(color='white', linestyle='solid')
 
-    xy = X[class_member_mask & core_samples_mask]
-    plt.plot(xy[:, 0], xy[:, 1], 'o', markerfacecolor=col,
-             markeredgecolor='k', markersize=14)
+# Define some CSS to control our custom labels
+css = """
+table
+{
+  border-collapse: collapse;
+}
+th
+{
+  color: #ffffff;
+  background-color: #000000;
+}
+td
+{
+  background-color: #cccccc;
+}
+table, th, td
+{
+  font-family:Arial, Helvetica, sans-serif;
+  border: 1px solid black;
+  text-align: right;
+}
+"""
 
-    xy = X[class_member_mask & ~core_samples_mask]
-    plt.plot(xy[:, 0], xy[:, 1], 'o', markerfacecolor=col,
-             markeredgecolor='k', markersize=6)
+#CLICK
+class ClickInfo(mpld3.plugins.PluginBase):
+    """Plugin for getting info on click"""
 
-plt.title('Estimated number of clusters: %d' % n_clusters_)
-plt.show()
+    #TODO: move this to separate js
+    JAVASCRIPT = "window.ips = [\"" + string.join(ips, "\",\"") + "\"]"
+    JAVASCRIPT += """
+    mpld3.register_plugin("clickinfo", ClickInfo);
+    ClickInfo.prototype = Object.create(mpld3.Plugin.prototype);
+    ClickInfo.prototype.constructor = ClickInfo;
+    ClickInfo.prototype.requiredProps = ["id"];
+    function ClickInfo(fig, props){
+        mpld3.Plugin.call(this, fig, props);
+    };
 
+    ClickInfo.prototype.draw = function(){
+            var obj = mpld3.get_element(this.props.id);
 
-plt.show()
+            obj.elements().on("mousedown", function(d, i){
+                var ip = ips[Number(i)];
+                console.log(ip);
+                var el = document.getElementById('ipLabel');
+                if(!el){
+                    var el = document.createElement('p')
+                    el.id = 'ipLabel';
+                    el.style.cssText = 'position: absolute; top: 0; left: 20';
+                    document.body.appendChild(el)
+                }
+                el.innerHTML = ip;
+                range = document.createRange();
+                range.selectNode(el);
+                window.getSelection().addRange(range);
+                document.execCommand('copy')
+        });
+    }
+    """
+    def __init__(self, points):
+        self.dict_ = {"type": "clickinfo",
+                      "id": mpld3.utils.get_id(points),}
 
+mpld3.plugins.connect(fig, ClickInfo(scatter))
+
+#~CLICK
+
+tooltip = mpld3.plugins.PointHTMLTooltip(scatter, labels=ips, css=css)
+mpld3.plugins.connect(fig, tooltip)
+
+mpld3.show()
 
 print "Plotted"
