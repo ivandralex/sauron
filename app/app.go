@@ -39,7 +39,7 @@ var config = struct {
 	beholdStat:         false,
 	beholdSessionsEnd:  true,
 	beholdFeatures:     true,
-	writeWhenConfident: true,
+	writeWhenConfident: false,
 	sessionsPeriod:     5,
 	statPeriod:         5,
 	featuresPeriod:     5,

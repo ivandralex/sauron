@@ -43,7 +43,7 @@ if not tsne_from_dump:
 
 	print "Rows: %s" % len(X)
 
-	X = X[:60000]
+	#X = X[:110000]
 
 	print "Finished reading"
 
@@ -75,7 +75,7 @@ if not tsne_from_dump:
 	print pca.explained_variance_ratio_
 
 	#X_plot = IncrementalPCA(n_components=2, batch_size=10).fit_transform(X)
-	dominator_features = 5
+	dominator_features = 10
 
 	print "Finished PCA: %.3f of variance retained" % np.sum(pca.explained_variance_ratio_)
 	i = 0
@@ -84,6 +84,8 @@ if not tsne_from_dump:
 		i = i + 1
 
 	print("\n\n\n\n")
+
+	sys.exit(0)
 
 	#ICA
 	#rng = np.random.RandomState(42)
