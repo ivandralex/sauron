@@ -16,14 +16,16 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 from matplotlib import colors
 
+from scipy.sparse import csr_matrix
+
 from mpl_toolkits.mplot3d import Axes3D
-from sklearn.decomposition import PCA, KernelPCA, FastICA, IncrementalPCA
+from sklearn.decomposition import PCA, KernelPCA, FastICA, IncrementalPCA, TruncatedSVD
 from sklearn.manifold import TSNE
 
 print(__doc__)
 
 x_from_dump = len(sys.argv) == 1
-tsne_from_dump = len(sys.argv) == 1
+tsne_from_dump = False #en(sys.argv) == 1
 
 
 if not tsne_from_dump:
@@ -39,23 +41,18 @@ if not tsne_from_dump:
 
 	print "Finished reading"
 
-	np.random.shuffle(X)
+	#np.random.shuffle(X)
 
 	print "Rows: %s" % len(X)
 
-	#X = X[:110000]
-
-	print "Finished reading"
-
-	np.random.shuffle(X)
-
-	print "Finished shuffling"
+	#X = X[:10000]
+	#np.random.shuffle(X)
+	#print "Finished shuffling"
 
 	y = [seq[-1] for seq in X]
-	keys = [seq[0:2] ]
 	ips = []
 	for seq in X:
-		ips.append(seq[0] + "|" + seq[1])
+		ips.append(str(seq[0]) + "|" + str(seq[1]))
 	X = [tuple(seq)[2:-1] for seq in X]
 
 	data = data.drop('user_agent', 1)
@@ -63,40 +60,47 @@ if not tsne_from_dump:
 
 	print "Finished slicing and transforming"
 
-	#kpca = KernelPCA(kernel="rbf", fit_inverse_transform=True, gamma=10)
-	#X_kpca = kpca.fit_transform(X)
-	#X_plot = kpca.inverse_transform(X_kpca)
-
 	n_components = 2
 
-	pca = PCA(n_components=n_components)
-	X_plot = pca.fit_transform(X[:])
+	model = 'pca'
 
-	print pca.explained_variance_ratio_
+	if model == 'pca':
+		pca = PCA(n_components=n_components)
+	if model == 'kernel-pca':
+		kpca = KernelPCA(kernel="rbf", fit_inverse_transform=True, gamma=10)
+		X_kpca = kpca.fit_transform(X)
+		X_plot = kpca.inverse_transform(X_kpca)
+	if model == 'truncated-svd':
+		X_sparse = csr_matrix(X)
+		pca = TruncatedSVD(n_components=n_components, random_state=241)
+		X_plot = pca.fit_transform(X_sparse)
+	if model == 'incremental-pca':
+		pca = IncrementalPCA(n_components=n_components, batch_size=10, copy=False)
+		X_plot = pca.fit_transform(X)
+	if model == 'fast-ica':
+		rng = np.random.RandomState(42)
+		ica = FastICA(random_state=rng)
+		X_plot = ica.fit(X).transform(X)  # Estimate the sources
 
-	#X_plot = IncrementalPCA(n_components=2, batch_size=10).fit_transform(X)
-	dominator_features = 10
+	if 'pca' in model or 'svd' in model:
+		print pca.explained_variance_ratio_
 
-	print "Finished PCA: %.3f of variance retained" % np.sum(pca.explained_variance_ratio_)
-	i = 0
-	while i<n_components:
-		print "Feature %s dominated by: %s\n" % (i, data.columns.values[np.argpartition(pca.components_[0], -dominator_features)[-dominator_features:]])
-		i = i + 1
+		dominator_features = 10
 
-	print("\n\n\n\n")
-
-	sys.exit(0)
-
-	#ICA
-	#rng = np.random.RandomState(42)
-	#ica = FastICA(random_state=rng)
-	#X_plot = ica.fit(X).transform(X)  # Estimate the sources
+		print "Finished PCA: %.3f of variance retained" % np.sum(pca.explained_variance_ratio_)
+		i = 0
+		while i<n_components:
+			print "Feature %s dominated by: %s\n" % (i, data.columns.values[np.argpartition(pca.components_[0], -dominator_features)[-dominator_features:]])
+			i = i + 1
+		print("\n\n\n\n")
 
 	#t-sne
-	#model = TSNE(n_components=2, random_state=241)
-	#np.set_printoptions(suppress=True)
-	#X_plot = model.fit_transform(X_plot)
+	if mode == 't-sne':
+		model = TSNE(n_components=n_components, random_state=241)
+		np.set_printoptions(suppress=True)
+		X_plot = model.fit_transform(X)
 
+	#Dump features
 	with open('./tsne_x.pickle', 'w+') as f:
 		X_plot.dump(f)
 	with open('./tsne_y.pickle', 'w+') as f:
@@ -184,7 +188,10 @@ class ClickInfo(mpld3.plugins.PluginBase):
                     el.style.cssText = 'position: absolute; top: 0; left: 20';
                     document.body.appendChild(el)
                 }
-                el.innerHTML = ip;
+				var pieces = ip.split('|')
+				var command = 'grep ' + pieces[0] + ' ~/repos/data-miner-utils/data/dump.list | grep "' + pieces[1] + '"';
+                //el.innerHTML = ip;
+				el.innerHTML = command;
                 range = document.createRange();
                 range.selectNode(el);
                 window.getSelection().addRange(range);
