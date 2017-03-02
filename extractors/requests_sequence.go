@@ -67,6 +67,14 @@ func (fv *RequestsSequence) ExtractFeatures(s *sstrg.SessionData) []string {
 		}
 	}
 
+	if requestsCounter != fv.cardinality {
+		for requestsCounter < fv.cardinality {
+			vector := fv.getEmptyPathVector()
+			features = append(features, vector...)
+			requestsCounter++
+		}
+	}
+
 	return features
 }
 

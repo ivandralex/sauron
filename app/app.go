@@ -29,17 +29,17 @@ var config = struct {
 	statPeriod         int
 	maxInactiveMinutes float64
 	//Feature flags
-	beholdStat         bool
-	beholdFeatures     bool
-	writeWhenConfident bool
-	beholdSessionsEnd  bool
+	beholdStat        bool
+	beholdFeatures    bool
+	writeRelevantOnly bool
+	beholdSessionsEnd bool
 }{
 	useDataHeader:      true,
 	emulateTime:        true,
 	beholdStat:         false,
 	beholdSessionsEnd:  true,
 	beholdFeatures:     true,
-	writeWhenConfident: false,
+	writeRelevantOnly:  true,
 	sessionsPeriod:     5,
 	statPeriod:         5,
 	featuresPeriod:     5,
@@ -136,7 +136,7 @@ func startFeaturesBeholder(sessions *sstrg.SessionsTable, periodSec int) {
 		log.Fatalln("Could not open dump file for writing:", err)
 	}
 
-	columnNames := []string{"key"}
+	columnNames := []string{"ip", "user_agent"}
 	featureNames := defaultExtractor.GetFeaturesNames()
 	columnNames = append(columnNames, featureNames...)
 	columnNames = append(columnNames, "label")
@@ -180,7 +180,7 @@ func dumpFeatures(w io.Writer, sessions *sstrg.SessionsTable) {
 		//Append label
 		var label = defaultDetector.GetLabel(s)
 
-		if config.writeWhenConfident && label != detectors.HumanLabel && label != detectors.BotLabel {
+		if config.writeRelevantOnly && label == detectors.IrrelevantLabel {
 			continue
 		}
 
