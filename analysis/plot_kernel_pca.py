@@ -66,6 +66,7 @@ if not tsne_from_dump:
 
 	if model == 'pca':
 		pca = PCA(n_components=n_components)
+		X_plot = pca.fit_transform(X)
 	if model == 'kernel-pca':
 		kpca = KernelPCA(kernel="rbf", fit_inverse_transform=True, gamma=10)
 		X_kpca = kpca.fit_transform(X)
@@ -95,7 +96,7 @@ if not tsne_from_dump:
 		print("\n\n\n\n")
 
 	#t-sne
-	if mode == 't-sne':
+	if model == 't-sne':
 		model = TSNE(n_components=n_components, random_state=241)
 		np.set_printoptions(suppress=True)
 		X_plot = model.fit_transform(X)
@@ -131,8 +132,8 @@ plt.ylabel('2nd eigenvector')
 
 #Labels
 fig, ax = plt.subplots(subplot_kw=dict(axisbg='#EEEEEE'))
-fig.set_figheight(12)
-fig.set_figwidth(12)
+fig.set_figheight(14)
+fig.set_figwidth(24)
 
 scatter = ax.scatter(X_plot[:, 0], X_plot[:, 1], c=y, cmap=cMap, norm=norm)
 ax.grid(color='white', linestyle='solid')
