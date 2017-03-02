@@ -38,15 +38,15 @@ if not tsne_from_dump:
 
 	print "Finished reading"
 
+	data = data[:200000]
+	#np.random.shuffle(X)
+	#print "Finished shuffling"
+
 	y = data.iloc[:, -1:]
 	X = data.iloc[:, 2:-1]
 
 	print X.shape
 	print y.shape
-
-	#X = X[:10000]
-	#np.random.shuffle(X)
-	#print "Finished shuffling"
 
 	print "Rows: %s" % len(X)
 
