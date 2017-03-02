@@ -25,7 +25,7 @@ func main() {
 	var compositeDetector = new(detectors.CompositeDetector)
 	compositeDetector.Init("")
 
-	var d1 = new(detectors.BlackListDetector)
+	var d1 = new(detectors.IPListDetector)
 	d1.Init("configs/ip_black_list.csv")
 	compositeDetector.AddDetector(d1)
 
