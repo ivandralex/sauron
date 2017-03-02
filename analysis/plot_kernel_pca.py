@@ -30,30 +30,30 @@ tsne_from_dump = False #en(sys.argv) == 1
 
 if not tsne_from_dump:
 	if x_from_dump:
-		with open('./dump.pickle', 'r') as f:
-			X = np.load(f)
+		data = pandas.read_pickle('./dumps/dump.pickle')
 	else:
 		data_path = sys.argv[1]
 		data = pandas.read_csv(data_path)
-		X = data.as_matrix()# genfromtxt(data_path, delimiter=',',usecols=np.arange(0,1434))
-		with open('./dump.pickle', 'w+') as f:
-			X.dump(f)
+		data.to_pickle('./dumps/dump.pickle')
 
 	print "Finished reading"
 
-	#np.random.shuffle(X)
+	y = data.iloc[:, -1:]
+	X = data.iloc[:, 2:-1]
 
-	print "Rows: %s" % len(X)
+	print X.shape
+	print y.shape
 
 	#X = X[:10000]
 	#np.random.shuffle(X)
 	#print "Finished shuffling"
 
-	y = [seq[-1] for seq in X]
+	print "Rows: %s" % len(X)
+
+	#Keys
 	ips = []
-	for seq in X:
+	for seq in data.values:
 		ips.append(str(seq[0]) + "|" + str(seq[1]))
-	X = [tuple(seq)[2:-1] for seq in X]
 
 	data = data.drop('user_agent', 1)
 	data = data.drop('ip', 1)
@@ -102,22 +102,22 @@ if not tsne_from_dump:
 		X_plot = model.fit_transform(X)
 
 	#Dump features
-	with open('./tsne_x.pickle', 'w+') as f:
+	with open('./dumps/tsne_x.pickle', 'w+') as f:
 		X_plot.dump(f)
-	with open('./tsne_y.pickle', 'w+') as f:
+	with open('./dumps/tsne_y.pickle', 'w+') as f:
 		y_plot = np.asarray(y)
 		y_plot.dump(f)
-	with open('./ips.pickle', 'w+') as f:
+	with open('./dumps/ips.pickle', 'w+') as f:
 		ips_list = np.asarray(ips)
 		print ips_list
 		ips_list.dump(f)
 else:
-	with open('./tsne_x.pickle', 'r') as f:
+	with open('./dumps/tsne_x.pickle', 'r') as f:
 		X_plot = np.load(f)
-	with open('./tsne_y.pickle', 'r') as f:
+	with open('./dumps/tsne_y.pickle', 'r') as f:
 		y_plot = np.load(f)
 		y = y_plot.tolist()
-	with open('./ips.pickle', 'r') as f:
+	with open('./dumps/ips.pickle', 'r') as f:
 		ips = np.load(f)
         ips = ips.tolist()
 
