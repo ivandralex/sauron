@@ -124,8 +124,8 @@ else:
 print "Finished T-SNE"
 
 # Plot the training points
-cMap = colors.ListedColormap(['blue', 'red','green', 'grey'], 'indexed', 4)
-bounds=[0,1,2,3,4]
+cMap = colors.ListedColormap(['blue', 'red','green', 'grey', 'pink', 'magenta'], 'indexed')
+bounds=[0,1,2,3,4,5]
 norm = colors.BoundaryNorm(bounds, cMap.N)
 plt.xlabel('1st eigenvector')
 plt.ylabel('2nd eigenvector')
@@ -212,5 +212,3 @@ tooltip = mpld3.plugins.PointHTMLTooltip(scatter, labels=ips, css=css)
 mpld3.plugins.connect(fig, tooltip)
 
 mpld3.show()
-
-print "Plotted"

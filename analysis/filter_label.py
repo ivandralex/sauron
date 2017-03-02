@@ -27,7 +27,7 @@ print(__doc__)
 data_path = sys.argv[1]
 data = pandas.read_csv(data_path)
 
-ips = data.query('label == 2')['ip'].values
+ips = data.query('label == 5')['ip'].values
 
 print len(ips)
 
