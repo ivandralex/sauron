@@ -21,7 +21,7 @@ func (d *CompositeDetector) GetLabel(s *sstrg.SessionData) int {
 	for _, detector := range d.composition {
 		label = detector.GetLabel(s)
 
-		if label != UnknownLabel && label != IrrelevantLabel {
+		if label != UnknownLabel {
 			return label
 		}
 	}
