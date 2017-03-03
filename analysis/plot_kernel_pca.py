@@ -40,8 +40,8 @@ if not tsne_from_dump:
 
 	#print "Finished shuffling"
 
-	y = data.iloc[:200000, -1:]
-	X = data.iloc[:200000, 2:-1]
+	y = data.iloc[:20000, -1:]
+	X = data.iloc[:20000, 2:-1]
 
 	print X.shape
 	print y.shape
@@ -100,19 +100,19 @@ if not tsne_from_dump:
 
 	#t-sne
 	if model == 't-sne':
-		model = TSNE(n_components=n_components, random_state=241)
+		model = TSNE(n_components=n_components, random_state=241, init='pca')
 		np.set_printoptions(suppress=True)
 		X_plot = model.fit_transform(X)
 
-	#Dump features
-	with open('./dumps/tsne_x.pickle', 'w+') as f:
-		X_plot.dump(f)
-	with open('./dumps/tsne_y.pickle', 'w+') as f:
-		y_plot = np.asarray(y)
-		y_plot.dump(f)
-	with open('./dumps/ips.pickle', 'w+') as f:
-		ips_list = np.asarray(ips)
-		ips_list.dump(f)
+		#Dump features
+		with open('./dumps/tsne_x.pickle', 'w+') as f:
+			X_plot.dump(f)
+		with open('./dumps/tsne_y.pickle', 'w+') as f:
+			y_plot = np.asarray(y)
+			y_plot.dump(f)
+		with open('./dumps/ips.pickle', 'w+') as f:
+			ips_list = np.asarray(ips)
+			ips_list.dump(f)
 else:
 	with open('./dumps/tsne_x.pickle', 'r') as f:
 		X_plot = np.load(f)
