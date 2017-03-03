@@ -25,7 +25,7 @@ from sklearn.manifold import TSNE
 print(__doc__)
 
 x_from_dump = len(sys.argv) == 1
-tsne_from_dump = False #en(sys.argv) == 1
+tsne_from_dump = len(sys.argv) == 1
 
 
 if not tsne_from_dump:
@@ -38,12 +38,10 @@ if not tsne_from_dump:
 
 	print "Finished reading"
 
-	data = data[:200000]
-	#np.random.shuffle(X)
 	#print "Finished shuffling"
 
-	y = data.iloc[:, -1:]
-	X = data.iloc[:, 2:-1]
+	y = data.iloc[:200000, -1:]
+	X = data.iloc[:200000, 2:-1]
 
 	print X.shape
 	print y.shape
@@ -58,17 +56,22 @@ if not tsne_from_dump:
 	data = data.drop('user_agent', 1)
 	data = data.drop('ip', 1)
 
+	columns = data.columns.values
+
+	#Try to free memory
+	del data
+
 	print "Finished slicing and transforming"
 
 	n_components = 2
 
-	model = 'pca'
+	model = 't-sne'
 
 	if model == 'pca':
-		pca = PCA(n_components=n_components)
+		pca = PCA(n_components=n_components, random_state=241)
 		X_plot = pca.fit_transform(X)
 	if model == 'kernel-pca':
-		kpca = KernelPCA(kernel="rbf", fit_inverse_transform=True, gamma=10)
+		kpca = KernelPCA(kernel="rbf", fit_inverse_transform=True, gamma=10, random_state=241)
 		X_kpca = kpca.fit_transform(X)
 		X_plot = kpca.inverse_transform(X_kpca)
 	if model == 'truncated-svd':
@@ -76,7 +79,7 @@ if not tsne_from_dump:
 		pca = TruncatedSVD(n_components=n_components, random_state=241)
 		X_plot = pca.fit_transform(X_sparse)
 	if model == 'incremental-pca':
-		pca = IncrementalPCA(n_components=n_components, batch_size=10, copy=False)
+		pca = IncrementalPCA(n_components=n_components, batch_size=10, copy=False, random_state=241)
 		X_plot = pca.fit_transform(X)
 	if model == 'fast-ica':
 		rng = np.random.RandomState(42)
@@ -91,7 +94,7 @@ if not tsne_from_dump:
 		print "Finished PCA: %.3f of variance retained" % np.sum(pca.explained_variance_ratio_)
 		i = 0
 		while i<n_components:
-			print "Feature %s dominated by: %s\n" % (i, data.columns.values[np.argpartition(pca.components_[0], -dominator_features)[-dominator_features:]])
+			print "Feature %s dominated by: %s\n" % (i, columns[np.argpartition(pca.components_[0], -dominator_features)[-dominator_features:]])
 			i = i + 1
 		print("\n\n\n\n")
 
@@ -109,7 +112,6 @@ if not tsne_from_dump:
 		y_plot.dump(f)
 	with open('./dumps/ips.pickle', 'w+') as f:
 		ips_list = np.asarray(ips)
-		print ips_list
 		ips_list.dump(f)
 else:
 	with open('./dumps/tsne_x.pickle', 'r') as f:
