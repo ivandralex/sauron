@@ -3,6 +3,7 @@ package extractors
 import (
 	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/sauron/config"
 	"github.com/sauron/session"
@@ -46,21 +47,34 @@ func (fv *RequestsSequence) SetCardinality(cardinality int) {
 //ExtractFeatures extracts paths vector from session
 func (fv *RequestsSequence) ExtractFeatures(s *sstrg.SessionData) []string {
 	var features = []string{}
+	var pathTimes = make(map[string]time.Time)
 
 	requestsCounter := 0
+
+	startTime := s.Requests[0].Time
 
 	//Build path vectors map from requests
 	for _, r := range s.Requests {
 		if _, pv := fv.targetPathsMap[r.Path]; pv {
 			vector := fv.getEmptyPathVector()
 
+			//Setup one-hot vector for this request
 			index := fv.targetPathsMap[r.Path]
-
 			vector[index] = "1"
-			requestsCounter++
-
 			features = append(features, vector...)
 
+			//Init time for this request
+			if _, ok := pathTimes[r.Path]; !ok {
+				pathTimes[r.Path] = startTime
+			}
+
+			//Save delay of this request from previous request for the same path
+			//(or from the beginning of the session if it's the first request for this path)
+			requestDelay := r.Time.Sub(pathTimes[r.Path]).Seconds()
+			features = append(features, strconv.FormatFloat(requestDelay, 'f', 3, 64))
+			pathTimes[r.Path] = r.Time
+
+			requestsCounter++
 			if requestsCounter == fv.cardinality {
 				break
 			}
@@ -83,9 +97,11 @@ func (fv *RequestsSequence) GetFeaturesNames() []string {
 	head := []string{}
 
 	for i := 0; i < fv.cardinality; i++ {
+		index := strconv.FormatInt(int64(i), 10)
 		for _, path := range fv.targetPaths {
-			head = append(head, strconv.FormatInt(int64(i), 10)+path)
+			head = append(head, index+path)
 		}
+		head = append(head, index+"/delay")
 	}
 
 	return head
