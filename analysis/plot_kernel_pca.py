@@ -26,7 +26,10 @@ print(__doc__)
 
 x_from_dump = len(sys.argv) == 1
 tsne_from_dump = len(sys.argv) == 1
-
+if len(sys.argv) < 3:
+	model = 'pca'
+else:
+	model = sys.argv[2]
 
 if not tsne_from_dump:
 	if x_from_dump:
@@ -40,8 +43,8 @@ if not tsne_from_dump:
 
 	#print "Finished shuffling"
 
-	y = data.iloc[:20000, -1:]
-	X = data.iloc[:20000, 2:-1]
+	y = data.iloc[:, -1:]
+	X = data.iloc[:, 2:-1]
 
 	print X.shape
 	print y.shape
@@ -56,6 +59,9 @@ if not tsne_from_dump:
 	data = data.drop('user_agent', 1)
 	data = data.drop('ip', 1)
 
+
+	print data[data['0/delay'].idxmax()]
+
 	columns = data.columns.values
 
 	#Try to free memory
@@ -64,8 +70,6 @@ if not tsne_from_dump:
 	print "Finished slicing and transforming"
 
 	n_components = 2
-
-	model = 't-sne'
 
 	if model == 'pca':
 		pca = PCA(n_components=n_components, random_state=241)
@@ -100,6 +104,11 @@ if not tsne_from_dump:
 
 	#t-sne
 	if model == 't-sne':
+		pca = PCA(n_components=16, random_state=241)
+		X = pca.fit_transform(X)
+
+		print "Applied PCA before T-SNE: %.3f" % np.sum(pca.explained_variance_ratio_)
+
 		model = TSNE(n_components=n_components, random_state=241, init='pca')
 		np.set_printoptions(suppress=True)
 		X_plot = model.fit_transform(X)
