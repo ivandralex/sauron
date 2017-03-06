@@ -1,6 +1,7 @@
 package extractors
 
 import (
+	"fmt"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -11,9 +12,10 @@ import (
 
 //RequestsSequence feature representation of the session
 type RequestsSequence struct {
-	cardinality    int
-	targetPathsMap map[string]int
-	targetPaths    []string
+	cardinality     int
+	targetPathsMap  map[string]int
+	targetPaths     []string
+	temporalEnabled bool
 }
 
 //Init initializes extractor
@@ -44,6 +46,11 @@ func (fv *RequestsSequence) SetCardinality(cardinality int) {
 	fv.cardinality = cardinality
 }
 
+//SetTemporalEnabled disables or enables temporal features
+func (fv *RequestsSequence) SetTemporalEnabled(enabled bool) {
+	fv.temporalEnabled = enabled
+}
+
 //ExtractFeatures extracts paths vector from session
 func (fv *RequestsSequence) ExtractFeatures(s *sstrg.SessionData) []string {
 	var features = []string{}
@@ -63,16 +70,22 @@ func (fv *RequestsSequence) ExtractFeatures(s *sstrg.SessionData) []string {
 			vector[index] = "1"
 			features = append(features, vector...)
 
-			//Init time for this request
-			if _, ok := pathTimes[r.Path]; !ok {
-				pathTimes[r.Path] = startTime
-			}
+			if fv.temporalEnabled {
+				//Init time for this request
+				if _, ok := pathTimes[r.Path]; !ok {
+					pathTimes[r.Path] = startTime
+				}
 
-			//Save delay of this request from previous request for the same path
-			//(or from the beginning of the session if it's the first request for this path)
-			requestDelay := r.Time.Sub(pathTimes[r.Path]).Seconds()
-			features = append(features, strconv.FormatFloat(requestDelay, 'f', 3, 64))
-			pathTimes[r.Path] = r.Time
+				//Save delay of this request from previous request for the same path
+				//(or from the beginning of the session if it's the first request for this path)
+				requestDelay := r.Time.Sub(pathTimes[r.Path]).Seconds()
+
+				if requestDelay > 100000 {
+					fmt.Printf("Too long session of %f with key %s\n", requestDelay, s.IP)
+				}
+				features = append(features, strconv.FormatFloat(requestDelay, 'f', 3, 64))
+				pathTimes[r.Path] = r.Time
+			}
 
 			requestsCounter++
 			if requestsCounter == fv.cardinality {
@@ -101,7 +114,9 @@ func (fv *RequestsSequence) GetFeaturesNames() []string {
 		for _, path := range fv.targetPaths {
 			head = append(head, index+path)
 		}
-		head = append(head, index+"/delay")
+		if fv.temporalEnabled {
+			head = append(head, index+"/delay")
+		}
 	}
 
 	return head
