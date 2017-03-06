@@ -20,6 +20,7 @@ from scipy.sparse import csr_matrix
 
 from mpl_toolkits.mplot3d import Axes3D
 from sklearn.decomposition import PCA, KernelPCA, FastICA, IncrementalPCA, TruncatedSVD
+from sklearn.manifold import MDS
 from sklearn.manifold import TSNE
 
 print(__doc__)
@@ -43,6 +44,8 @@ if not tsne_from_dump:
 
 	#print "Finished shuffling"
 
+	data = data.sample(frac=1)
+
 	y = data.iloc[:, -1:]
 	X = data.iloc[:, 2:-1]
 
@@ -58,9 +61,6 @@ if not tsne_from_dump:
 
 	data = data.drop('user_agent', 1)
 	data = data.drop('ip', 1)
-
-
-	print data[data['0/delay'].idxmax()]
 
 	columns = data.columns.values
 
@@ -89,7 +89,6 @@ if not tsne_from_dump:
 		rng = np.random.RandomState(42)
 		ica = FastICA(random_state=rng)
 		X_plot = ica.fit(X).transform(X)  # Estimate the sources
-
 	if 'pca' in model or 'svd' in model:
 		print pca.explained_variance_ratio_
 
@@ -101,8 +100,6 @@ if not tsne_from_dump:
 			print "Feature %s dominated by: %s\n" % (i, columns[np.argpartition(pca.components_[0], -dominator_features)[-dominator_features:]])
 			i = i + 1
 		print("\n\n\n\n")
-
-	#t-sne
 	if model == 't-sne':
 		pca = PCA(n_components=16, random_state=241)
 		X = pca.fit_transform(X)
@@ -112,20 +109,24 @@ if not tsne_from_dump:
 		model = TSNE(n_components=n_components, random_state=241, init='pca')
 		np.set_printoptions(suppress=True)
 		X_plot = model.fit_transform(X)
+	if model == 'mds':
+		mds = MDS(n_components=n_components, random_state=241, n_jobs=4)
+		X_plot = mds.fit_transform(X)
 
-		#Dump features
-		with open('./dumps/tsne_x.pickle', 'w+') as f:
-			X_plot.dump(f)
-		with open('./dumps/tsne_y.pickle', 'w+') as f:
-			y_plot = np.asarray(y)
-			y_plot.dump(f)
-		with open('./dumps/ips.pickle', 'w+') as f:
-			ips_list = np.asarray(ips)
-			ips_list.dump(f)
+	#Dump features
+	with open('./dumps/reduced_x.pickle', 'w+') as f:
+		X_plot.dump(f)
+	with open('./dumps/reduced_y.pickle', 'w+') as f:
+		y_plot = np.asarray(y)
+		y_plot.dump(f)
+	with open('./dumps/ips.pickle', 'w+') as f:
+		ips_list = np.asarray(ips)
+		ips_list.dump(f)
+
 else:
-	with open('./dumps/tsne_x.pickle', 'r') as f:
+	with open('./dumps/reduced_x.pickle', 'r') as f:
 		X_plot = np.load(f)
-	with open('./dumps/tsne_y.pickle', 'r') as f:
+	with open('./dumps/reduced_y.pickle', 'r') as f:
 		y_plot = np.load(f)
 		y = y_plot.tolist()
 	with open('./dumps/ips.pickle', 'r') as f:
