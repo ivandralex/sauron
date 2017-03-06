@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/paulbellamy/ratecounter"
 	"github.com/sauron/detectors"
 	"github.com/sauron/extractors"
 	"github.com/sauron/session"
@@ -45,7 +44,6 @@ var config = struct {
 
 var sessions = new(sstrg.SessionsTable)
 var emulatedTime time.Time
-var rpsCounter = ratecounter.NewRateCounter(10 * time.Second)
 
 var defaultDetector detectors.Detector
 var defaultExtractor extractors.Extractor

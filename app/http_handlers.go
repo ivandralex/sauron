@@ -3,9 +3,13 @@ package sauron
 import (
 	"fmt"
 	"net/http"
+	"time"
 
+	"github.com/paulbellamy/ratecounter"
 	"github.com/sauron/session"
 )
+
+var rpsCounter = ratecounter.NewRateCounter(10 * time.Second)
 
 //StatHandler outputs current RPS
 func StatHandler(w http.ResponseWriter, r *http.Request) {
