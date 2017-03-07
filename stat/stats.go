@@ -22,7 +22,7 @@ func StartSessionsStatBeholder(periodSec int, sessions *sstrg.SessionsTable, det
 }
 
 func calcBotsStat(sessions *sstrg.SessionsTable, detector *detectors.Detector) {
-	fmt.Println("\n\n\n----Active bots session ------")
+	fmt.Println("\n\n\n----Active bots session ------\n")
 
 	keysByLabel := map[string][]string{
 		"human":      []string{},
@@ -45,7 +45,7 @@ func calcBotsStat(sessions *sstrg.SessionsTable, detector *detectors.Detector) {
 		case detectors.UnknownLabel:
 			keysByLabel["unknown"] = append(keysByLabel["unknown"], key)
 		case detectors.IrrelevantLabel:
-			//keysByLabel["irrelevant"] = append(keysByLabel["irrelevant"], key)
+			keysByLabel["irrelevant"] = append(keysByLabel["irrelevant"], key)
 		case 4:
 			keysByLabel["humanlike"] = append(keysByLabel["humanlike"], key)
 		}
@@ -53,11 +53,15 @@ func calcBotsStat(sessions *sstrg.SessionsTable, detector *detectors.Detector) {
 
 	sessions.Unlock()
 
-	for label := range keysByLabel {
-		fmt.Printf("%s:\n", label)
+	labelsToPrint := []string{"bot"}
+
+	for _, label := range labelsToPrint {
+		fmt.Printf("%s:\n\n", label)
 
 		for _, sessionKey := range keysByLabel[label] {
-			fmt.Println("http://localhost:3000/raw?key=" + url.QueryEscape(sessionKey))
+			fmt.Printf("http://localhost:3000/raw?key=%s\n\n", url.QueryEscape(sessionKey))
 		}
 	}
+
+	fmt.Printf("----\nhuman: %d\nbots: %d\nhumanlike: %d\nunknown: %d\n", len(keysByLabel["human"]), len(keysByLabel["bot"]), len(keysByLabel["humanlike"]), len(keysByLabel["unknown"]))
 }
