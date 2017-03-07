@@ -20,7 +20,8 @@ type SessionsTable struct {
 //SessionData session statistics
 type SessionData struct {
 	sync.RWMutex
-	Started  time.Time
+	Started time.Time
+	//TODO: add user agent field and remove it from requests
 	Ended    time.Time
 	Requests []*RequestData
 	IP       string
