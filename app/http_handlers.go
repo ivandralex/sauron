@@ -3,6 +3,7 @@ package sauron
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/paulbellamy/ratecounter"
@@ -15,7 +16,7 @@ var rpsCounter = ratecounter.NewRateCounter(10 * time.Second)
 func RequestHandler(w http.ResponseWriter, r *http.Request) {
 	//Form session key
 	var sessionKey = sstrg.GetSessionKey(r)
-	fmt.Println(sessionKey)
+	fmt.Println("http://localhost:3000/raw?key=" + url.QueryEscape(sessionKey))
 	//Extract useful data from request
 	var request = sstrg.GetRequestData(r, config.useDataHeader, emulatedTime)
 

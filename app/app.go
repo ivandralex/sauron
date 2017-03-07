@@ -107,7 +107,7 @@ func closeSessions() {
 		dur = now.Sub(s.Ended).Minutes()
 
 		if dur > config.maxInactiveMinutes {
-			fmt.Fprintf(os.Stdout, "Closed session: %s cauze inactive for %f\n", k, dur)
+			fmt.Fprintf(os.Stdout, "Closed session: %s\n", k)
 			//Mark session as inactive. It will be deleted after the next dump
 			s.Active = false
 		}
@@ -175,6 +175,7 @@ func dumpFeatures(w io.Writer, sessions *sstrg.SessionsTable) {
 			log.Fatalln("Error writing record to csv:", err)
 		}
 
+		//TODO: use listeners counter for session
 		//Delete session from storage
 		delete(sessions.H, key)
 	}
