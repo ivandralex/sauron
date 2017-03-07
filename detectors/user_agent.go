@@ -2,6 +2,7 @@ package detectors
 
 import (
 	"fmt"
+	"regexp"
 
 	"github.com/sauron/config"
 	"github.com/sauron/session"
@@ -9,13 +10,18 @@ import (
 
 //UserAgentDetector checks session by checking user agent
 type UserAgentDetector struct {
-	userAgents map[string]bool
-	label      int
+	userAgentsExp []*regexp.Regexp
+	label         int
 }
 
 //Init initializes human path detector
 func (d *UserAgentDetector) Init(configPath string) {
-	d.userAgents = configutil.ReadStringMap(configPath)
+	userAgents := configutil.ReadPathsConfig(configPath)
+	d.userAgentsExp = make([]*regexp.Regexp, len(userAgents), len(userAgents))
+
+	for i, expStr := range userAgents {
+		d.userAgentsExp[i] = regexp.MustCompile(expStr)
+	}
 }
 
 //SetLabel sets positive label for this detector
@@ -26,9 +32,12 @@ func (d *UserAgentDetector) SetLabel(label int) {
 //GetLabel returns label for session by checking
 func (d *UserAgentDetector) GetLabel(s *sstrg.SessionData) int {
 	userAgent := s.Requests[0].Header.Get("User-Agent")
-	if _, ok := d.userAgents[userAgent]; ok {
-		fmt.Printf("user_agent_detector: %s\n", userAgent)
-		return d.label
+
+	for _, re := range d.userAgentsExp {
+		if re.MatchString(userAgent) {
+			fmt.Printf("user_agent_detector2: %s\n", userAgent)
+			return d.label
+		}
 	}
 
 	return UnknownLabel
