@@ -27,8 +27,9 @@ func calcBotsStat(sessions *sstrg.SessionsTable, detector *detectors.Detector) {
 	counts := struct {
 		bots       int
 		human      int
-		uknown     int
+		unknown    int
 		irrelevant int
+		humanlike  int
 	}{}
 	sessions.Lock()
 
@@ -44,9 +45,11 @@ func calcBotsStat(sessions *sstrg.SessionsTable, detector *detectors.Detector) {
 		case detectors.HumanLabel:
 			counts.human++
 		case detectors.UnknownLabel:
-			counts.uknown++
+			counts.unknown++
 		case detectors.IrrelevantLabel:
 			counts.irrelevant++
+		case 4:
+			counts.humanlike++
 		}
 	}
 

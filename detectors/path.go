@@ -30,9 +30,12 @@ func (d *PathDetector) Init(configPath string) {
 func (d *PathDetector) GetLabel(s *sstrg.SessionData) int {
 	for _, r := range s.Requests {
 		if _, ok := d.paths[r.Path]; ok {
+			//fmt.Println("path_detector: detected")
 			return d.label
 		}
 	}
+
+	//fmt.Println("path_detector: unknown")
 
 	return UnknownLabel
 }

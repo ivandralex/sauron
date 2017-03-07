@@ -133,6 +133,10 @@ func GetRequestData(r *http.Request, useDataHeader bool, emulatedTime time.Time)
 
 	request.Path, request.ContentType = GetContentType(request.Path)
 
+	if strings.HasSuffix(request.Path, "/") {
+		request.Path = request.Path[:len(request.Path)-1]
+	}
+
 	return request
 }
 
