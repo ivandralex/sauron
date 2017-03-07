@@ -5,3 +5,4 @@ config.json
 *.csv
 **/output
 *.pickle
+artefacts/

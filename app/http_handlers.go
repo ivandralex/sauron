@@ -11,17 +11,11 @@ import (
 
 var rpsCounter = ratecounter.NewRateCounter(10 * time.Second)
 
-//StatHandler outputs current RPS
-func StatHandler(w http.ResponseWriter, r *http.Request) {
-	rps := rpsCounter.Rate() / 10
-
-	fmt.Fprintf(w, "RPS: %d", rps)
-}
-
 //RequestHandler handles incoming request
 func RequestHandler(w http.ResponseWriter, r *http.Request) {
 	//Form session key
 	var sessionKey = sstrg.GetSessionKey(r)
+	fmt.Println(sessionKey)
 	//Extract useful data from request
 	var request = sstrg.GetRequestData(r, config.useDataHeader)
 
@@ -56,6 +50,31 @@ func HandleRequest(sessionKey string, request *sstrg.RequestData) {
 	sessions.H[sessionKey].Requests = append(sessions.H[sessionKey].Requests, request)
 
 	sessions.Unlock()
+}
+
+//SessionCheckHandler checks session with default detector
+func SessionCheckHandler(w http.ResponseWriter, r *http.Request) {
+	var sessionKey = r.URL.Query().Get("key")
+
+	if sessionKey == "" {
+		sessionKey = sstrg.GetSessionKey(r)
+	}
+
+	sessions.RLock()
+
+	if _, ok := sessions.H[sessionKey]; !ok {
+		w.WriteHeader(404)
+		fmt.Fprint(w, "Key Not Found: "+sessionKey)
+		sessions.RUnlock()
+		return
+	}
+
+	var session = sessions.H[sessionKey]
+	var label = defaultDetector.GetLabel(session)
+
+	sessions.RUnlock()
+
+	fmt.Fprint(w, label)
 }
 
 //RawHandler outputs raw requests data for specified session key
@@ -93,26 +112,9 @@ func RawHandler(w http.ResponseWriter, r *http.Request) {
 	sessions.RUnlock()
 }
 
-//SessionCheckHandler checks session with default detector
-func SessionCheckHandler(w http.ResponseWriter, r *http.Request) {
-	var sessionKey = r.URL.Query().Get("key")
+//StatHandler outputs current RPS
+func StatHandler(w http.ResponseWriter, r *http.Request) {
+	rps := rpsCounter.Rate() / 10
 
-	if sessionKey == "" {
-		sessionKey = sstrg.GetSessionKey(r)
-	}
-
-	sessions.RLock()
-
-	if _, ok := sessions.H[sessionKey]; !ok {
-		fmt.Fprint(w, "Key Not Found: "+sessionKey)
-		sessions.RUnlock()
-		return
-	}
-
-	var session = sessions.H[sessionKey]
-	var label = defaultDetector.GetLabel(session)
-
-	sessions.RUnlock()
-
-	fmt.Fprint(w, label)
+	fmt.Fprintf(w, "RPS: %d", rps)
 }

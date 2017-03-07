@@ -85,7 +85,7 @@ var resourcePathMasks = []string{
 //GetSessionKey generates session key form request headers
 func GetSessionKey(r *http.Request) string {
 	var ip = getIP(r)
-	return ip // + "|" + r.Header.Get("User-Agent")
+	return ip + "|" + r.Header.Get("User-Agent")
 }
 
 func getIP(r *http.Request) string {

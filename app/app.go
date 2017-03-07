@@ -1,6 +1,7 @@
 package sauron
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -33,9 +34,9 @@ var config = struct {
 }{
 	useDataHeader:      true,
 	emulateTime:        true,
-	beholdStat:         false,
+	beholdStat:         true,
 	beholdSessionsEnd:  true,
-	beholdFeatures:     true,
+	beholdFeatures:     false,
 	writeRelevantOnly:  true,
 	sessionsPeriod:     5,
 	statPeriod:         5,
@@ -66,7 +67,7 @@ func Start() {
 	}
 	//Collect stat on sessions
 	if config.beholdStat {
-		go statutils.StartSessionsStatBeholder(sessions, config.statPeriod)
+		go statutils.StartSessionsStatBeholder(config.statPeriod, sessions, &defaultDetector)
 	}
 
 	//Dump features periodically
@@ -86,7 +87,7 @@ func startSessionsBeholder(periodSec int) {
 }
 
 func closeSessions() {
-	//fmt.Fprintf(os.Stdout, "Closing sessions!\n")
+	fmt.Fprintf(os.Stdout, "Closing sessions!\n")
 
 	var dur float64
 	var now time.Time
@@ -98,7 +99,7 @@ func closeSessions() {
 
 	sessions.RLock()
 
-	for _, s := range sessions.H {
+	for k, s := range sessions.H {
 		if !s.Active {
 			continue
 		}
@@ -106,7 +107,7 @@ func closeSessions() {
 		dur = now.Sub(s.Ended).Minutes()
 
 		if dur > config.maxInactiveMinutes {
-			//fmt.Fprintf(os.Stdout, "Closed session: %s cauze inactive for %f\n", k, dur)
+			fmt.Fprintf(os.Stdout, "Closed session: %s cauze inactive for %f\n", k, dur)
 			//Mark session as inactive. It will be deleted after the next dump
 			s.Active = false
 		}

@@ -53,6 +53,7 @@ func handleRequest(source []string) {
 	if err == nil {
 		request.Time = t
 	} else {
+		fmt.Printf("Faiiled to parser time: %v", err)
 		request.Time = time.Now().UTC()
 	}
 
@@ -66,7 +67,7 @@ func handleRequest(source []string) {
 	request.Referer = source[1]
 	request.IP = strings.Split(source[2], ",")[0]
 	request.Path, request.ContentType = sstrg.GetContentType(request.Path)
-	request.Cookies = sstrg.GetCookiesFromCookiesString(source[6])
+	//request.Cookies = sstrg.GetCookiesFromCookiesString(source[6])
 
 	//TODO: external key func
 	var sessionKey = request.IP + "|" + source[4]

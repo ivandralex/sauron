@@ -19,13 +19,15 @@ from sklearn.manifold import TSNE
 data_path = sys.argv[1]
 output_path = sys.argv[2]
 label = sys.argv[3]
-data = pandas.read_csv(data_path)
+data = pandas.read_csv(data_path, delimiter=';')
 
-ips = data.query('label == ' + label)['ip'].values
+data = data.dropna()
+ips = data['ip'].values
 
 print len(ips)
 
 with open(output_path, 'w+') as f:
     for ip in ips:
+        print ip
         f.write(ip + '\n')
     f.close()
