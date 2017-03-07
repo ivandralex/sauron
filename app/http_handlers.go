@@ -82,6 +82,7 @@ func RawHandler(w http.ResponseWriter, r *http.Request) {
 	var sessionKey = r.URL.Query().Get("key")
 
 	if _, ok := sessions.H[sessionKey]; !ok {
+		w.WriteHeader(404)
 		fmt.Fprint(w, "Not Found")
 		return
 	}

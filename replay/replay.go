@@ -53,7 +53,7 @@ func handleRequest(source []string) {
 	if err == nil {
 		request.Time = t
 	} else {
-		fmt.Printf("Faiiled to parser time: %v", err)
+		fmt.Printf("Failed to parse time: %v", err)
 		request.Time = time.Now().UTC()
 	}
 

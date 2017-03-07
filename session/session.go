@@ -1,6 +1,7 @@
 package sstrg
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"regexp"
@@ -123,6 +124,7 @@ func GetRequestData(r *http.Request, useDataHeader bool) *RequestData {
 		if err == nil {
 			request.Time = t.UTC()
 		} else {
+			fmt.Printf("Failed to parse time: %v\n", err)
 			request.Time = time.Now().UTC()
 		}
 	} else {
