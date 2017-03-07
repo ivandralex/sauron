@@ -100,7 +100,7 @@ func getIP(r *http.Request) string {
 }
 
 //GetRequestData RequestData factory method
-func GetRequestData(r *http.Request, useDataHeader bool) *RequestData {
+func GetRequestData(r *http.Request, useDataHeader bool, emulatedTime time.Time) *RequestData {
 	var request = new(RequestData)
 
 	request.Path = r.URL.Path
@@ -125,10 +125,10 @@ func GetRequestData(r *http.Request, useDataHeader bool) *RequestData {
 			request.Time = t.UTC()
 		} else {
 			fmt.Printf("Failed to parse time: %v\n", err)
-			request.Time = time.Now().UTC()
+			request.Time = emulatedTime
 		}
 	} else {
-		request.Time = time.Now().UTC()
+		request.Time = emulatedTime
 	}
 
 	request.Path, request.ContentType = GetContentType(request.Path)

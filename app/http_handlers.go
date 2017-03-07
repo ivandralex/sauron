@@ -17,7 +17,7 @@ func RequestHandler(w http.ResponseWriter, r *http.Request) {
 	var sessionKey = sstrg.GetSessionKey(r)
 	fmt.Println(sessionKey)
 	//Extract useful data from request
-	var request = sstrg.GetRequestData(r, config.useDataHeader)
+	var request = sstrg.GetRequestData(r, config.useDataHeader, emulatedTime)
 
 	HandleRequest(sessionKey, request)
 

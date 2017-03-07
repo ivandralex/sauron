@@ -41,7 +41,7 @@ var config = struct {
 	sessionsPeriod:     5,
 	statPeriod:         5,
 	featuresPeriod:     5,
-	maxInactiveMinutes: 60.0}
+	maxInactiveMinutes: 20.0}
 
 var sessions = new(sstrg.SessionsTable)
 var emulatedTime time.Time
