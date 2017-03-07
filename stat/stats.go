@@ -2,6 +2,7 @@ package statutils
 
 import (
 	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/sauron/detectors"
@@ -21,16 +22,15 @@ func StartSessionsStatBeholder(periodSec int, sessions *sstrg.SessionsTable, det
 }
 
 func calcBotsStat(sessions *sstrg.SessionsTable, detector *detectors.Detector) {
-	fmt.Println("----Active bots session ------")
+	fmt.Println("\n\n\n----Active bots session ------")
 
-	var botsKeys = []string{}
-	counts := struct {
-		bots       int
-		human      int
-		unknown    int
-		irrelevant int
-		humanlike  int
-	}{}
+	keysByLabel := map[string][]string{
+		"human":      []string{},
+		"irrelevant": []string{},
+		"bot":        []string{},
+		"unknown":    []string{},
+		"humanlike":  []string{},
+	}
 	sessions.Lock()
 
 	//TODO: do not iterate over map
@@ -39,21 +39,25 @@ func calcBotsStat(sessions *sstrg.SessionsTable, detector *detectors.Detector) {
 
 		switch label {
 		case detectors.BotLabel:
-			fmt.Println(key)
-			botsKeys = append(botsKeys, key)
-			counts.bots++
+			keysByLabel["bot"] = append(keysByLabel["bot"], key)
 		case detectors.HumanLabel:
-			counts.human++
+			keysByLabel["human"] = append(keysByLabel["human"], key)
 		case detectors.UnknownLabel:
-			counts.unknown++
+			keysByLabel["unknown"] = append(keysByLabel["unknown"], key)
 		case detectors.IrrelevantLabel:
-			counts.irrelevant++
+			//keysByLabel["irrelevant"] = append(keysByLabel["irrelevant"], key)
 		case 4:
-			counts.humanlike++
+			keysByLabel["humanlike"] = append(keysByLabel["humanlike"], key)
 		}
 	}
 
 	sessions.Unlock()
 
-	fmt.Printf("----\nCounts: %v\n\n", counts)
+	for label := range keysByLabel {
+		fmt.Printf("%s:\n", label)
+
+		for _, sessionKey := range keysByLabel[label] {
+			fmt.Println("http://localhost:3000/raw?key=" + url.QueryEscape(sessionKey))
+		}
+	}
 }
