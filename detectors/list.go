@@ -1,23 +1,22 @@
 package detectors
 
 import (
-	"fmt"
 	"regexp"
 
 	"github.com/sauron/config"
 	"github.com/sauron/session"
 )
 
-//SessionKeyGetter interface for session key getter
-type SessionKeyGetter interface {
+//RequestKeyGetter interface for session key getter
+type RequestKeyGetter interface {
 	getKey(s *sstrg.RequestData) string
 }
 
-//ListDetector checks session by checking user agent
+//ListDetector returns label for session by matching key against list of regexps
 type ListDetector struct {
 	expList   []*regexp.Regexp
 	label     int
-	keyGetter SessionKeyGetter
+	keyGetter RequestKeyGetter
 }
 
 //Init list detector
@@ -35,14 +34,13 @@ func (d *ListDetector) SetLabel(label int) {
 	d.label = label
 }
 
-//GetLabel returns label for session by checking
+//GetLabel returns label for session by matching key against list of regexps
 func (d *ListDetector) GetLabel(s *sstrg.SessionData) int {
 	for _, r := range s.Requests {
 		key := d.keyGetter.getKey(r)
 
 		for _, re := range d.expList {
 			if re.MatchString(key) {
-				fmt.Printf("list_detector3: %s\n", key)
 				return d.label
 			}
 		}
