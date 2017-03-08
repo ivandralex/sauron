@@ -10,7 +10,7 @@ import (
 
 //SessionKeyGetter interface for session key getter
 type SessionKeyGetter interface {
-	getKey(s *sstrg.SessionData) string
+	getKey(s *sstrg.RequestData) string
 }
 
 //ListDetector checks session by checking user agent
@@ -37,12 +37,14 @@ func (d *ListDetector) SetLabel(label int) {
 
 //GetLabel returns label for session by checking
 func (d *ListDetector) GetLabel(s *sstrg.SessionData) int {
-	key := d.keyGetter.getKey(s)
+	for _, r := range s.Requests {
+		key := d.keyGetter.getKey(r)
 
-	for _, re := range d.expList {
-		if re.MatchString(key) {
-			fmt.Printf("list_detector3: %s\n", key)
-			return d.label
+		for _, re := range d.expList {
+			if re.MatchString(key) {
+				fmt.Printf("list_detector3: %s\n", key)
+				return d.label
+			}
 		}
 	}
 

@@ -1,41 +1,18 @@
 package detectors
 
-import (
-	"github.com/sauron/config"
-	"github.com/sauron/session"
-)
+import "github.com/sauron/session"
 
-//PathDetector detects human by checking if client visited so called "human" paths
+//PathDetector assigns specified label to session from enlisted ip
 type PathDetector struct {
-	paths map[string]bool
-	label int
+	ListDetector
 }
 
-//SetLabel sets positive label for this detector
-func (d *PathDetector) SetLabel(label int) {
-	d.label = label
-}
-
-//Init initializes human path detector
+//Init list detector
 func (d *PathDetector) Init(configPath string) {
-	d.paths = make(map[string]bool)
-	var paths = configutil.ReadPathsConfig(configPath)
-
-	for _, path := range paths {
-		d.paths[path] = true
-	}
+	d.ListDetector.Init(configPath)
+	d.keyGetter = d
 }
 
-//GetLabel returns label for session by analyzing visited paths
-func (d *PathDetector) GetLabel(s *sstrg.SessionData) int {
-	for _, r := range s.Requests {
-		if _, ok := d.paths[r.Path]; ok {
-			//fmt.Println("path_detector: detected")
-			return d.label
-		}
-	}
-
-	//fmt.Println("path_detector: unknown")
-
-	return UnknownLabel
+func (d *PathDetector) getKey(r *sstrg.RequestData) string {
+	return r.Path
 }

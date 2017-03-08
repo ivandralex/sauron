@@ -13,6 +13,6 @@ func (d *IPListDetector) Init(configPath string) {
 	d.keyGetter = d
 }
 
-func (d *IPListDetector) getKey(s *sstrg.SessionData) string {
-	return s.IP
+func (d *IPListDetector) getKey(r *sstrg.RequestData) string {
+	return r.IP
 }
