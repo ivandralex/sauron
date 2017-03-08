@@ -1,60 +1,18 @@
 package detectors
 
-import (
-	"errors"
-	"fmt"
-	"strings"
+import "github.com/sauron/session"
 
-	"github.com/sauron/config"
-	"github.com/sauron/session"
-)
-
-//IPListDetector detects bot by checking if client has ip from black list
+//IPListDetector assigns specified label to session from enlisted ip
 type IPListDetector struct {
-	listedIPS map[string]bool
-	label     int
+	ListDetector
 }
 
-//Init initializes human path detector
+//Init list detector
 func (d *IPListDetector) Init(configPath string) {
-	d.listedIPS = configutil.ReadStringMap(configPath)
+	d.ListDetector.Init(configPath)
+	d.keyGetter = d
 }
 
-//SetLabel sets positive label for this detector
-func (d *IPListDetector) SetLabel(label int) {
-	d.label = label
-}
-
-//GetLabel returns label for session by checking
-func (d *IPListDetector) GetLabel(s *sstrg.SessionData) int {
-	if _, ok := d.listedIPS[s.IP]; ok {
-		return d.label
-	}
-
-	mask, err := ipToMask(s.IP)
-
-	if err != nil {
-		fmt.Printf("Incorrect IP: %s\n", s.IP)
-	}
-
-	if _, ok := d.listedIPS[mask]; ok {
-		return d.label
-	}
-
-	return UnknownLabel
-}
-
-func ipToMask(ip string) (string, error) {
-	//Convert IP to mask
-	parts := strings.Split(ip, ".")
-
-	if len(parts) != 4 {
-		return "", errors.New("Incorrect IP")
-	}
-
-	parts[2] = "*"
-	parts[3] = "*"
-	mask := strings.Join(parts, ".")
-
-	return mask, nil
+func (d *IPListDetector) getKey(s *sstrg.SessionData) string {
+	return s.IP
 }
