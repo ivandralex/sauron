@@ -36,7 +36,7 @@ var config = struct {
 	emulateTime:        true,
 	beholdStat:         true,
 	beholdSessionsEnd:  true,
-	beholdFeatures:     false,
+	beholdFeatures:     true,
 	writeRelevantOnly:  true,
 	sessionsPeriod:     5,
 	statPeriod:         5,
@@ -120,7 +120,7 @@ func startFeaturesBeholder(sessions *sstrg.SessionsTable, periodSec int) {
 	// fire once per second
 	t := time.NewTicker(time.Second * time.Duration(periodSec))
 
-	absPath, _ := filepath.Abs("output/features/new.csv")
+	absPath, _ := filepath.Abs("output/features.csv")
 	os.Remove(absPath)
 
 	w, err := os.Create(absPath)

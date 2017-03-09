@@ -1,17 +1,34 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"log"
 	"net/http"
 
 	"github.com/sauron/app"
 	"github.com/sauron/detectors"
+	"github.com/sauron/extractors"
 	"github.com/sauron/replay"
 )
 
 //import _ "net/http/pprof"
 
+const replayMode = "replay"
+const detectMode = "detect"
+
 func main() {
+	//Define flags
+	mode := flag.String("mode", detectMode, "Application mode: replay|detect")
+	//replayFrom := flag.String("replay-from", "", "Replay start date in ISO8601 format")
+	dumpFile := flag.String("dump", "", "Path to dump file")
+	flag.Parse()
+
+	if *mode == replayMode && *dumpFile == "" {
+		log.Fatal("Dump file not specified")
+	}
+
+	fmt.Printf("mode: %s\n", *mode)
 	http.HandleFunc("/", sauron.RequestHandler) // each request calls handler
 	http.HandleFunc("/raw", sauron.RawHandler)
 	http.HandleFunc("/stat", sauron.StatHandler)
@@ -29,15 +46,21 @@ func main() {
 	d1.Init("configs/ip_black_list.csv")
 	compositeDetector.AddDetector(d1)
 
-	var d2 = new(detectors.HumanPathDetector)
+	var d2 = new(detectors.PathDetector)
 	d2.Init("configs/human_paths.csv")
 	compositeDetector.AddDetector(d2)
 	/* ~Detectors~ */
 
-	sauron.Configure(compositeDetector)
+	var extractor = new(extractors.RequestsSequence)
+	extractor.Init("configs/requests_sequence.csv")
+
+	sauron.Configure(compositeDetector, extractor)
 	sauron.Start()
 
-	replay.Start("/home/andrew/repos/data-miner-utils/dump.list")
-
-	log.Println(http.ListenAndServe("localhost:6060", nil))
+	if *mode == replayMode {
+		fmt.Println("Gonna replay traffic")
+		replay.Start(*dumpFile)
+	} else {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}
 }
