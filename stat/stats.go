@@ -31,12 +31,18 @@ func calcBotsStat(sessions *sstrg.SessionsTable, detector *detectors.Detector) {
 		"unknown":    []string{},
 		"humanlike":  []string{},
 	}
+	active := 0
 	total := 0
 	sessions.Lock()
 
 	//TODO: do not iterate over map
 	for key, s := range sessions.H {
 		label := (*detector).GetLabel(s)
+		total++
+
+		if !s.Active {
+			continue
+		}
 
 		switch label {
 		case detectors.BotLabel:
@@ -51,7 +57,7 @@ func calcBotsStat(sessions *sstrg.SessionsTable, detector *detectors.Detector) {
 			keysByLabel["humanlike"] = append(keysByLabel["humanlike"], key)
 		}
 
-		total++
+		active++
 	}
 
 	sessions.Unlock()
@@ -80,5 +86,5 @@ func calcBotsStat(sessions *sstrg.SessionsTable, detector *detectors.Detector) {
 		fmt.Printf("%s: %d\n", label, len(keysByLabel[label]))
 	}
 
-	fmt.Printf("----\nTotal: %d\n", total)
+	fmt.Printf("----\nactive/total: %d/%d\n", active, total)
 }
