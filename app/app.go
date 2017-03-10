@@ -161,18 +161,16 @@ func dumpFeatures(w io.Writer, sessions *sstrg.SessionsTable) {
 		//Append label
 		var label = defaultDetector.GetLabel(s)
 
-		if config.writeRelevantOnly && label == detectors.IrrelevantLabel {
-			continue
-		}
+		if !config.writeRelevantOnly || label != detectors.IrrelevantLabel {
+			line := strings.Split(key, "|")
 
-		line := strings.Split(key, "|")
+			var fvDesc = defaultExtractor.ExtractFeatures(s)
+			line = append(line, fvDesc...)
+			line = append(line, strconv.Itoa(label))
 
-		var fvDesc = defaultExtractor.ExtractFeatures(s)
-		line = append(line, fvDesc...)
-		line = append(line, strconv.Itoa(label))
-
-		if err := printCSV(w, line); err != nil {
-			log.Fatalln("Error writing record to csv:", err)
+			if err := printCSV(w, line); err != nil {
+				log.Fatalln("Error writing record to csv:", err)
+			}
 		}
 
 		//TODO: use listeners counter for session
