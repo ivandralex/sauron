@@ -83,7 +83,7 @@ func (fv *RequestsSequence) ExtractFeatures(s *sstrg.SessionData) []string {
 				if requestDelay > 100000 {
 					fmt.Printf("Too long session of %f with key %s\n", requestDelay, s.IP)
 				}
-				features = append(features, strconv.FormatFloat(requestDelay, 'f', 3, 64))
+				features = append(features, strconv.FormatFloat(requestDelay, 'f', 1, 64))
 				pathTimes[r.Path] = r.Time
 			}
 
