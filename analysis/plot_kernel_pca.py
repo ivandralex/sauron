@@ -136,7 +136,7 @@ else:
 print "Finished T-SNE"
 
 # Plot the training points
-cMap = colors.ListedColormap(['blue', 'red','green', 'grey', 'pink', 'magenta'], 'indexed')
+cMap = colors.ListedColormap(['grey', 'red','green', 'pink', 'magenta', 'blue'], 'indexed')
 bounds=[0,1,2,3,4,5]
 norm = colors.BoundaryNorm(bounds, cMap.N)
 plt.xlabel('1st eigenvector')
