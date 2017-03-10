@@ -32,6 +32,11 @@ func (fv *RequestsSequence) Init(configPath string) {
 
 func (fv *RequestsSequence) getEmptyPathVector() []string {
 	length := len(fv.targetPaths)
+
+	if fv.temporalEnabled {
+		length++
+	}
+
 	vector := make([]string, length, length)
 
 	for i := range vector {
@@ -68,7 +73,6 @@ func (fv *RequestsSequence) ExtractFeatures(s *sstrg.SessionData) []string {
 			//Setup one-hot vector for this request
 			index := fv.targetPathsMap[r.Path]
 			vector[index] = "1"
-			features = append(features, vector...)
 
 			if fv.temporalEnabled {
 				//Init time for this request
@@ -83,9 +87,11 @@ func (fv *RequestsSequence) ExtractFeatures(s *sstrg.SessionData) []string {
 				if requestDelay > 100000 {
 					fmt.Printf("Too long session of %f with key %s\n", requestDelay, s.IP)
 				}
-				features = append(features, strconv.FormatFloat(requestDelay, 'f', 1, 64))
+				vector[len(vector)-1] = strconv.FormatFloat(requestDelay, 'f', 1, 64)
 				pathTimes[r.Path] = r.Time
 			}
+
+			features = append(features, vector...)
 
 			requestsCounter++
 			if requestsCounter == fv.cardinality {
