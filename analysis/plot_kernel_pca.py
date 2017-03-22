@@ -47,7 +47,7 @@ if not tsne_from_dump:
 	data = data.sample(frac=1)
 
 	y = data.iloc[:, -1:]
-	X = data.iloc[:, 2:-1]
+	X = data.iloc[:, 2:]
 
 	print X.shape
 	print y.shape
@@ -101,10 +101,9 @@ if not tsne_from_dump:
 			i = i + 1
 		print("\n\n\n\n")
 	if model == 't-sne':
-		pca = PCA(n_components=16, random_state=241)
-		X = pca.fit_transform(X)
-
-		print "Applied PCA before T-SNE: %.3f" % np.sum(pca.explained_variance_ratio_)
+		#pca = PCA(n_components=16, random_state=241)
+		#X = pca.fit_transform(X)
+		#print "Applied PCA before T-SNE: %.3f" % np.sum(pca.explained_variance_ratio_)
 
 		model = TSNE(n_components=n_components, random_state=241, init='pca')
 		np.set_printoptions(suppress=True)
