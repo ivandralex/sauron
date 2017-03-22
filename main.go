@@ -10,6 +10,7 @@ import (
 	"github.com/sauron/detectors"
 	"github.com/sauron/extractors"
 	"github.com/sauron/replay"
+	"github.com/sauron/writers"
 )
 
 //import _ "net/http/pprof"
@@ -20,7 +21,8 @@ const detectMode = "detect"
 func main() {
 	//Define flags
 	mode := flag.String("mode", detectMode, "Application mode: replay|detect")
-	//replayFrom := flag.String("replay-from", "", "Replay start date in ISO8601 format")
+	//replayFrom := flag.String("replay-from", "", "Replay s=tart date in ISO8601 format")
+	outputFile := flag.String("output", "", "Path to output file for features")
 	dumpFile := flag.String("dump", "", "Path to dump file")
 	flag.Parse()
 
@@ -54,7 +56,10 @@ func main() {
 	var extractor = new(extractors.RequestsSequence)
 	extractor.Init("configs/requests_sequence.csv")
 
-	sauron.Configure(compositeDetector, extractor)
+	var writer = new(writers.CSVWriter)
+	writer.Init(*outputFile)
+
+	sauron.Configure(compositeDetector, extractor, writer)
 	sauron.Start()
 
 	if *mode == replayMode {

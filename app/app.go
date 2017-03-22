@@ -2,18 +2,15 @@ package sauron
 
 import (
 	"fmt"
-	"io"
-	"log"
 	"os"
-	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/sauron/detectors"
 	"github.com/sauron/extractors"
 	"github.com/sauron/session"
 	"github.com/sauron/stat"
+	"github.com/sauron/writers"
 )
 
 //import _ "net/http/pprof"
@@ -55,9 +52,10 @@ func init() {
 }
 
 //Configure configures app
-func Configure(detector detectors.Detector, extractor extractors.Extractor) {
+func Configure(detector detectors.Detector, extractor extractors.Extractor, writer writers.SessionDumpWriter) {
 	defaultDetector = detector
 	defaultExtractor = extractor
+	defaultWriter = writer
 }
 
 //Start features extractor
@@ -121,36 +119,17 @@ func startFeaturesBeholder(sessions *session.SessionsTable, periodSec int) {
 	// fire once per second
 	t := time.NewTicker(time.Second * time.Duration(periodSec))
 
-	absPath, _ := filepath.Abs("output/features.csv")
-	os.Remove(absPath)
-
-	w, err := os.Create(absPath)
-
-	if err != nil {
-		log.Fatalln("Error creating features file:", err)
-	}
-
-	if err != nil {
-		log.Fatalln("Could not open dump file for writing:", err)
-	}
-
-	//TODO: use composite serializable key
-	columnNames := []string{"ip", "user_agent"}
 	featureNames := defaultExtractor.GetFeaturesNames()
-	columnNames = append(columnNames, featureNames...)
-	columnNames = append(columnNames, "label")
 
-	if err := printCSV(w, columnNames); err != nil {
-		log.Fatalln("Error writing header to csv:", err)
-	}
+	defaultWriter.WriteHead(featureNames)
 
 	for {
-		dumpFeatures(w, sessions)
+		dumpFeatures(sessions)
 		<-t.C
 	}
 }
 
-func dumpFeatures(w io.Writer, sessions *session.SessionsTable) {
+func dumpFeatures(sessions *session.SessionsTable) {
 	sessions.Lock()
 
 	for key, s := range sessions.H {
@@ -159,19 +138,13 @@ func dumpFeatures(w io.Writer, sessions *session.SessionsTable) {
 			continue
 		}
 
-		//Append label
 		var label = defaultDetector.GetLabel(s)
 
 		if !config.writeRelevantOnly || label != detectors.IrrelevantLabel {
-			line := strings.Split(key, "|")
 
 			var fvDesc = defaultExtractor.ExtractFeatures(s)
-			line = append(line, fvDesc...)
-			line = append(line, strconv.Itoa(label))
 
-			if err := printCSV(w, line); err != nil {
-				log.Fatalln("Error writing record to csv:", err)
-			}
+			defaultWriter.WriteSession(key, fvDesc, strconv.Itoa(label))
 		}
 
 		//TODO: use listeners counter for session
