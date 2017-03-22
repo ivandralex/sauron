@@ -1,4 +1,4 @@
-package sstrg
+package session
 
 import (
 	"fmt"
@@ -17,7 +17,7 @@ type SessionsTable struct {
 	H map[string]*SessionData
 }
 
-//SessionData session statistics
+//SessionData session data
 type SessionData struct {
 	sync.RWMutex
 	Started time.Time

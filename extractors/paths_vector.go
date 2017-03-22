@@ -70,8 +70,8 @@ func (fv *PathsVector) describe(pathsFilter []string, pathVectors *map[string]*p
 }
 
 //ExtractFeatures extracts paths vector from session
-func (fv *PathsVector) ExtractFeatures(s *sstrg.SessionData) []string {
-	//sstrg.SortRequestsByTime(s.Requests)
+func (fv *PathsVector) ExtractFeatures(s *session.SessionData) []string {
+	//session.SortRequestsByTime(s.Requests)
 
 	pathVectors := make(map[string]*pathVector)
 

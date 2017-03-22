@@ -43,14 +43,15 @@ var config = struct {
 	featuresPeriod:     5,
 	maxInactiveMinutes: 20.0}
 
-var sessions = new(sstrg.SessionsTable)
+var sessions = new(session.SessionsTable)
 var emulatedTime time.Time
 
 var defaultDetector detectors.Detector
 var defaultExtractor extractors.Extractor
+var defaultWriter writers.SessionDumpWriter
 
 func init() {
-	sessions.H = make(map[string]*sstrg.SessionData)
+	sessions.H = make(map[string]*session.SessionData)
 }
 
 //Configure configures app
@@ -116,7 +117,7 @@ func closeSessions() {
 	sessions.RUnlock()
 }
 
-func startFeaturesBeholder(sessions *sstrg.SessionsTable, periodSec int) {
+func startFeaturesBeholder(sessions *session.SessionsTable, periodSec int) {
 	// fire once per second
 	t := time.NewTicker(time.Second * time.Duration(periodSec))
 
@@ -149,7 +150,7 @@ func startFeaturesBeholder(sessions *sstrg.SessionsTable, periodSec int) {
 	}
 }
 
-func dumpFeatures(w io.Writer, sessions *sstrg.SessionsTable) {
+func dumpFeatures(w io.Writer, sessions *session.SessionsTable) {
 	sessions.Lock()
 
 	for key, s := range sessions.H {

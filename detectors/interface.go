@@ -16,5 +16,5 @@ const (
 // Detector is an interface implemented by all Detectors
 type Detector interface {
 	Init(configPath string)
-	GetLabel(s *sstrg.SessionData) int
+	GetLabel(s *session.SessionData) int
 }

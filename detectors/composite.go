@@ -16,7 +16,7 @@ func (d *CompositeDetector) AddDetector(detector Detector) {
 func (d *CompositeDetector) Init(configPath string) {}
 
 //GetLabel returns the first non-zero label returned by composition of detectors
-func (d *CompositeDetector) GetLabel(s *sstrg.SessionData) int {
+func (d *CompositeDetector) GetLabel(s *session.SessionData) int {
 	var label int
 	for _, detector := range d.composition {
 		label = detector.GetLabel(s)

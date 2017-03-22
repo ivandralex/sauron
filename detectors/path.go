@@ -13,6 +13,6 @@ func (d *PathDetector) Init(configPath string) {
 	d.keyGetter = d
 }
 
-func (d *PathDetector) getKey(r *sstrg.RequestData) string {
+func (d *PathDetector) getKey(r *session.RequestData) string {
 	return r.Path
 }

@@ -46,7 +46,7 @@ func handleRequest(source []string) {
 	}
 	//var args = source[5]
 
-	var request = new(sstrg.RequestData)
+	var request = new(session.RequestData)
 
 	t, err := time.Parse(time.RFC3339Nano, source[3])
 
@@ -66,8 +66,8 @@ func handleRequest(source []string) {
 	request.Method = "GET"
 	request.Referer = source[1]
 	request.IP = strings.Split(source[2], ",")[0]
-	request.Path, request.ContentType = sstrg.GetContentType(request.Path)
-	//request.Cookies = sstrg.GetCookiesFromCookiesString(source[6])
+	request.Path, request.ContentType = session.GetContentType(request.Path)
+	//request.Cookies = session.GetCookiesFromCookiesString(source[6])
 
 	//TODO: external key func
 	var sessionKey = request.IP + "|" + source[4]

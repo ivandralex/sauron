@@ -9,7 +9,7 @@ import (
 
 //RequestKeyGetter interface for session key getter
 type RequestKeyGetter interface {
-	getKey(s *sstrg.RequestData) string
+	getKey(s *session.RequestData) string
 }
 
 //ListDetector returns label for session by matching key against list of regexps
@@ -35,7 +35,7 @@ func (d *ListDetector) SetLabel(label int) {
 }
 
 //GetLabel returns label for session by matching key against list of regexps
-func (d *ListDetector) GetLabel(s *sstrg.SessionData) int {
+func (d *ListDetector) GetLabel(s *session.SessionData) int {
 	for _, r := range s.Requests {
 		key := d.keyGetter.getKey(r)
 

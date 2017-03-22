@@ -57,7 +57,7 @@ func (fv *RequestsSequence) SetTemporalEnabled(enabled bool) {
 }
 
 //ExtractFeatures extracts paths vector from session
-func (fv *RequestsSequence) ExtractFeatures(s *sstrg.SessionData) []string {
+func (fv *RequestsSequence) ExtractFeatures(s *session.SessionData) []string {
 	var features = []string{}
 	var pathTimes = make(map[string]time.Time)
 

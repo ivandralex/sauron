@@ -10,7 +10,7 @@ import (
 )
 
 //StartSessionsStatBeholder collects and outputs statistics on sessions
-func StartSessionsStatBeholder(periodSec int, sessions *sstrg.SessionsTable, detector *detectors.Detector) {
+func StartSessionsStatBeholder(periodSec int, sessions *session.SessionsTable, detector *detectors.Detector) {
 	// fire once per second
 	t := time.NewTicker(time.Second * time.Duration(periodSec))
 
@@ -21,7 +21,7 @@ func StartSessionsStatBeholder(periodSec int, sessions *sstrg.SessionsTable, det
 	}
 }
 
-func calcBotsStat(sessions *sstrg.SessionsTable, detector *detectors.Detector) {
+func calcBotsStat(sessions *session.SessionsTable, detector *detectors.Detector) {
 	fmt.Printf("\n\n\n----Active bots session ------\n")
 
 	keysByLabel := map[string][]string{

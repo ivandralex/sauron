@@ -13,6 +13,6 @@ func (d *UserAgentDetector) Init(configPath string) {
 	d.keyGetter = d
 }
 
-func (d *UserAgentDetector) getKey(r *sstrg.RequestData) string {
+func (d *UserAgentDetector) getKey(r *session.RequestData) string {
 	return r.Header.Get("User-Agent")
 }

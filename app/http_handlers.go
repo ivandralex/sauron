@@ -14,10 +14,10 @@ var rpsCounter = ratecounter.NewRateCounter(10 * time.Second)
 //RequestHandler handles incoming request
 func RequestHandler(w http.ResponseWriter, r *http.Request) {
 	//Form session key
-	var sessionKey = sstrg.GetSessionKey(r)
+	var sessionKey = session.GetSessionKey(r)
 	//fmt.Println("http://localhost:3000/raw?key=" + url.QueryEscape(sessionKey))
 	//Extract useful data from request
-	var request = sstrg.GetRequestData(r, config.useDataHeader, emulatedTime)
+	var request = session.GetRequestData(r, config.useDataHeader, emulatedTime)
 
 	HandleRequest(sessionKey, request)
 
@@ -25,14 +25,14 @@ func RequestHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 //HandleRequest handles parsed request
-func HandleRequest(sessionKey string, request *sstrg.RequestData) {
+func HandleRequest(sessionKey string, request *session.RequestData) {
 	rpsCounter.Incr(1)
 	//Create stat struct for new session
 	sessions.Lock()
 
 	//Save new session to storage
 	if _, ok := sessions.H[sessionKey]; !ok {
-		sessions.H[sessionKey] = new(sstrg.SessionData)
+		sessions.H[sessionKey] = new(session.SessionData)
 		sessions.H[sessionKey].Started = request.Time
 		sessions.H[sessionKey].IP = request.IP
 	}
@@ -57,7 +57,7 @@ func SessionCheckHandler(w http.ResponseWriter, r *http.Request) {
 	var sessionKey = r.URL.Query().Get("key")
 
 	if sessionKey == "" {
-		sessionKey = sstrg.GetSessionKey(r)
+		sessionKey = session.GetSessionKey(r)
 	}
 
 	sessions.RLock()
